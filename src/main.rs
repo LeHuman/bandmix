@@ -85,81 +85,91 @@ async fn main() {
         if !update_trigger.load(std::sync::atomic::Ordering::Relaxed) {
             continue;
         }
-        let event = update_event.try_lock();
-        if let Ok(event) = event {
-            let mut track = Entry::default();
-            initial = true;
-            match event.to_owned() {
-                MediaControlEvent::Play => {
-                    println!("[PLAY]");
-                    track = discovery::current().unwrap_or_default();
+        let event = match update_event.try_lock() {
+            Ok(event) => event.to_owned(),
+            Err(_) => continue,
+        };
+        let mut track = Entry::default();
+        initial = true;
+        match event {
+            MediaControlEvent::Play => {
+                println!("[PLAY]");
+                track = discovery::current().unwrap_or_default();
 
-                    if !player.is_paused() {
-                        println!("[PAUSING ON ASSUMPTION]");
-                        player.pause();
-                    } else {
-                        if player.empty() {
-                            new_track(&track, &player).await;
-                        }
-                        player.play();
-                    }
-                }
-                MediaControlEvent::Pause => {
-                    println!("[PAUSE]");
+                #[cfg(target_os = "windows")]
+                if !player.is_paused() {
+                    println!("[PAUSING ON ASSUMPTION]");
                     player.pause();
-                }
-                MediaControlEvent::Toggle => {
-                    println!("[TOGGLE]");
-                    if player.is_paused() {
-                        player.play();
-                    } else {
-                        player.pause();
-                    };
-                }
-                MediaControlEvent::Next => {
-                    println!("[NEXT]");
-                    if discovery::mark_current_track().is_none() {
-                        eprintln!("Failed to mark last track");
+                } else {
+                    if player.empty() {
+                        new_track(&track, &player).await;
                     }
-                    track = discovery::next().unwrap_or_default();
-                    new_track(&track, &player).await;
+                    player.play();
                 }
-                MediaControlEvent::Previous => {
-                    println!("[PREVIOUS]");
-                    track = discovery::previous().unwrap_or_default();
-                    new_track(&track, &player).await;
-                }
-                MediaControlEvent::Stop => {
-                    println!("[STOP]");
-                    player.stop();
-                    discovery::stop();
-                    break;
-                }
-                MediaControlEvent::Quit => {
-                    println!("[QUIT]");
-                    player.stop();
-                    discovery::stop();
-                    break;
-                }
-                _ => {
-                    println!("[OTHER]");
-                } // TODO: other media controls
-            };
 
-            // TODO: use album id instead
-            if (last_track != track) || (last_track.album_name != track.album_name) {
-                // TODO: duration
-                // TODO: handle error
-                let _ = controls.set_metadata(MediaMetadata {
-                    title: Some(&track.name),
-                    artist: Some(&track.artist),
-                    album: Some(&track.album_name),
-                    cover_url: track.album_art_url.as_deref(),
-                    ..Default::default()
-                });
-                last_track = track;
+                #[cfg(not(target_os = "windows"))]
+                {
+                    if player.empty() {
+                        new_track(&track, &player).await;
+                    }
+                    player.play();
+                }
             }
-            update_trigger.store(false, std::sync::atomic::Ordering::Relaxed);
+            MediaControlEvent::Pause => {
+                println!("[PAUSE]");
+                player.pause();
+            }
+            MediaControlEvent::Toggle => {
+                println!("[TOGGLE]");
+                if player.is_paused() {
+                    player.play();
+                } else {
+                    player.pause();
+                };
+            }
+            MediaControlEvent::Next => {
+                println!("[NEXT]");
+                if discovery::mark_current_track().is_none() {
+                    eprintln!("Failed to mark last track");
+                }
+                track = discovery::next().unwrap_or_default();
+                new_track(&track, &player).await;
+            }
+            MediaControlEvent::Previous => {
+                println!("[PREVIOUS]");
+                track = discovery::previous().unwrap_or_default();
+                new_track(&track, &player).await;
+            }
+            MediaControlEvent::Stop => {
+                println!("[STOP]");
+                player.stop();
+                discovery::stop();
+                break;
+            }
+            MediaControlEvent::Quit => {
+                println!("[QUIT]");
+                player.stop();
+                discovery::stop();
+                break;
+            }
+            _ => {
+                println!("[OTHER]");
+            } // TODO: other media controls
+        };
+
+        // TODO: use album id instead
+        if (last_track != track) || (last_track.album_name != track.album_name) {
+            // TODO: duration
+            // TODO: handle error
+            let _ = controls.set_metadata(MediaMetadata {
+                title: Some(&track.name),
+                artist: Some(&track.artist),
+                album: Some(&track.album_name),
+                cover_url: track.album_art_url.as_deref(),
+                ..Default::default()
+            });
+            last_track = track;
         }
+        update_trigger.store(false, std::sync::atomic::Ordering::Relaxed);
     }
 }
