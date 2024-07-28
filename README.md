@@ -27,11 +27,11 @@ I wrote the app in rust for practice.
 
 ## Usage
 
-> [!IMPORTANT]
-> Linux requires `libasound2-dev` on Debian / Ubuntu or `alsa-lib-devel` on Fedora
-> If not building, `libasound2` on Debian / Ubuntu or `alsa-lib` on Fedora
-
 ### Requirements
+
+> [!IMPORTANT]
+> Linux requires `libasound2-dev` on Debian / Ubuntu or `alsa-lib-devel` on Fedora\
+> If not building, `libasound2` on Debian / Ubuntu or `alsa-lib` on Fedora
 
 - [Rust](https://www.rust-lang.org/) == 2021
 
@@ -44,6 +44,12 @@ This app has mainly been developed for Windows, with a working build on Debian L
 
 ```sh
 cargo run --release
+```
+
+### Installing
+
+```sh
+cargo install bandmix
 ```
 
 ## Related
