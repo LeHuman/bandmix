@@ -18,7 +18,6 @@ rodio = "0.19.0"
 savefile = "0.17.6"
 scraper = "0.19.1"
 sharded-slab = "0.1.7"
-souvlaki = "0.7.3"
 stream-download = "0.6.0"
 strum = { version = "0.26.3", features = ["derive"] }
 tokio = { version = "1.38.1", features = ["full"] }
@@ -26,7 +25,17 @@ tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 url = "2.5.2"
 
+[target.'cfg(macos)'.dependencies]
+souvlaki = "0.7.3"
+
+[target.'cfg(linux)'.dependencies]
+alsa = "0.9.0"
+souvlaki = { version = "0.7.3", default-features = false, features = [
+    "use_zbus",
+] }
+
 [target.'cfg(windows)'.dependencies]
+souvlaki = "0.7.3"
 windows = { version = "0.58.0", features = [
     "Media",
     "Win32_Foundation",
