@@ -36,7 +36,7 @@ I wrote the app in rust for practice.
 Only tested on Windows.
 
 There currently are no controls for the app.\
-Creating a `.cache` folder next to the executable, or wherever it's called from, lets it remember songs it has played, this will change.
+A cache file is created in appdata (or equivalent) to remember songs it has played.
 
 ```sh
 cargo run --release
