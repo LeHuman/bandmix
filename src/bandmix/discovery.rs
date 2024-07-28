@@ -11,20 +11,18 @@ use std::{
     time::Duration,
 };
 
-use bincode::{Decode, Encode};
 use crossbeam::queue::ArrayQueue;
 use dashmap::DashMap;
+use localsavefile::{localsavefile, LocalSaveFilePersistent};
 use once_cell::sync::Lazy;
 use sharded_slab::Slab;
-use tracing::{debug, error, info, instrument, warn};
+use tracing::{debug, error, info, warn};
 
 use crate::bandcamp::{
     self,
     api::{DiscoveryType, Format, Function, Genre, RecommendedType},
     models::{Album, Track},
 };
-
-use super::cache::Cache;
 
 static DISCOVERY_STATE: Lazy<Arc<AtomicBool>> = Lazy::new(|| Arc::new(AtomicBool::new(false)));
 
@@ -40,19 +38,18 @@ static FILTERED_TRACK_INDEX_CAP: Lazy<Arc<AtomicUsize>> =
 
 static THREADS: Lazy<ArrayQueue<JoinHandle<()>>> = Lazy::new(|| ArrayQueue::new(3));
 
-static TRACK_CACHE_PATH: &str = ".cache/rust_track_cache_listened.cache";
 // TODO: Expose cache and only add to it when a song has been 'listened' to
 static mut TRACK_CACHE: Lazy<Mutex<TrackCache>> =
-    Lazy::new(|| Mutex::new(TrackCache::load(TRACK_CACHE_PATH)));
+    Lazy::new(|| Mutex::new(TrackCache::load_default()));
 
 pub static TRACK_CURSOR: AtomicUsize = AtomicUsize::new(0);
 
-#[derive(Default, Encode, Decode)]
+#[localsavefile(persist = true)]
+#[derive(Default)]
 struct TrackCache {
     last_cursor: usize,
     track_ids: HashSet<u32>,
 }
-impl Cache for TrackCache {}
 
 fn filtered_track(track: &Track) -> bool {
     // TODO: genre blacklist
@@ -289,7 +286,6 @@ fn get_entry(track_i: usize) -> Option<Entry> {
     track
 }
 
-// #[instrument]
 pub fn mark_current_track() -> Option<()> {
     let track_i = TRACK_CURSOR.load(Relaxed);
 
@@ -299,14 +295,13 @@ pub fn mark_current_track() -> Option<()> {
     unsafe {
         let mut tc = TRACK_CACHE.lock().unwrap();
         tc.track_ids.insert(track.id);
-        if tc.save(TRACK_CACHE_PATH).is_err() {
+        if tc.save().is_err() {
             warn!("Failed to save track cache");
         }
     };
     Some(())
 }
 
-// #[instrument]
 pub fn unmark_current_track() -> Option<()> {
     let track_i = TRACK_CURSOR.load(Relaxed);
 
@@ -316,26 +311,23 @@ pub fn unmark_current_track() -> Option<()> {
     unsafe {
         let mut tc = TRACK_CACHE.lock().unwrap();
         tc.track_ids.remove(&track.id);
-        if tc.save(TRACK_CACHE_PATH).is_err() {
+        if tc.save().is_err() {
             warn!("Failed to save track cache");
         }
     };
     Some(())
 }
 
-// #[instrument]
 pub fn current() -> Option<Entry> {
     let track = TRACK_CURSOR.load(Relaxed);
     get_entry(track)
 }
 
-// #[instrument]
 pub fn next() -> Option<Entry> {
     let track = TRACK_CURSOR.fetch_add(1, Relaxed);
     get_entry(track + 1)
 }
 
-// #[instrument]
 pub fn previous() -> Option<Entry> {
     let track = TRACK_CURSOR.load(Relaxed);
     if track > 0 {
@@ -344,7 +336,6 @@ pub fn previous() -> Option<Entry> {
     get_entry(0)
 }
 
-// #[instrument]
 pub fn stop() {
     DISCOVERY_STATE.store(false, SeqCst);
     while !THREADS.is_empty() {
