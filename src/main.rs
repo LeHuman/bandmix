@@ -20,8 +20,35 @@ async fn new_track(track: &Entry, player: &Player) {
     player.start(&track.url).await;
 }
 
+#[cfg(target_os = "windows")]
+use windows::{
+    core::PCWSTR,
+    Win32::{
+        System::LibraryLoader::GetModuleHandleW,
+        UI::WindowsAndMessaging::{LoadImageW, IMAGE_ICON, LR_DEFAULTSIZE},
+    },
+};
+
+#[cfg(target_os = "windows")]
+fn load_icon() -> windows::core::Result<()> {
+    let _icon = unsafe {
+        LoadImageW(
+            GetModuleHandleW(None)?,
+            PCWSTR(1 as _), // Value must match the `nameID` in the .rc script
+            IMAGE_ICON,
+            0,
+            0,
+            LR_DEFAULTSIZE,
+        )
+    }?;
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
+    #[cfg(target_os = "windows")]
+    let _ = load_icon();
+
     let subscriber = FmtSubscriber::builder()
         .with_max_level(Level::INFO)
         .finish();
