@@ -29,6 +29,7 @@ I wrote the app in rust for practice.
 
 > [!IMPORTANT]
 > Linux requires `libasound2-dev` on Debian / Ubuntu or `alsa-lib-devel` on Fedora
+> If not building, `libasound2` on Debian / Ubuntu or `alsa-lib` on Fedora
 
 ### Requirements
 
@@ -36,10 +37,10 @@ I wrote the app in rust for practice.
 
 ### Running
 
-Only tested on Windows.
-
-There currently are no controls for the app.\
+There currently are no UI controls for the app. The app can, however, be controlled through media keys or any native media control panel.
 A cache file is created in appdata (or equivalent) to remember songs it has played.
+
+This app has mainly been developed for Windows, with a working build on Debian Linux.
 
 ```sh
 cargo run --release
