@@ -25,10 +25,10 @@ tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 url = "2.5.2"
 
-[target.'cfg(macos)'.dependencies]
+[target.'cfg(target_os = "macos")'.dependencies]
 souvlaki = "0.7.3"
 
-[target.'cfg(linux)'.dependencies]
+[target.'cfg(target_os = "linux")'.dependencies]
 souvlaki = { version = "0.7.3", default-features = false, features = [
     "use_zbus",
 ] }
