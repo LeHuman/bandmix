@@ -1,7 +1,4 @@
-use std::{
-    sync::{atomic::AtomicBool, Arc, Mutex},
-    time::Duration,
-};
+use std::sync::{atomic::AtomicBool, Arc, Mutex};
 
 use bandmix::{
     controls::get_media_controls,
@@ -58,8 +55,8 @@ async fn main() {
     let player = Player::new().expect("Failed to get Player");
     let update_trigger: Arc<AtomicBool> = Arc::new(AtomicBool::new(true));
     let update_event: Arc<Mutex<MediaControlEvent>> = Arc::new(Mutex::new(MediaControlEvent::Play));
-    let update_trigger_clone = Arc::clone(&update_trigger);
-    let update_event_clone = Arc::clone(&update_event);
+    let update_trigger_clone: Arc<AtomicBool> = Arc::clone(&update_trigger);
+    let update_event_clone: Arc<Mutex<MediaControlEvent>> = Arc::clone(&update_event);
     let mut initial = false;
     player.pause();
 

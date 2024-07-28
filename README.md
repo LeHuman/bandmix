@@ -27,6 +27,9 @@ I wrote the app in rust for practice.
 
 ## Usage
 
+> [!IMPORTANT]
+> Linux requires `libasound2-dev` on Debian / Ubuntu or `alsa-lib-devel` on Fedora
+
 ### Requirements
 
 - [Rust](https://www.rust-lang.org/) == 2021
