@@ -182,5 +182,5 @@ fn test_query_request() {
     _res = Api::request(url);
 
     assert!(_res.is_ok());
-    assert!(_res.unwrap() != serde_json::Value::default());
+    assert!(_res.unwrap() != String::default());
 }
