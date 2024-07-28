@@ -9,7 +9,6 @@
 ![Logo](<images/bandmix.png>)
 
 [![Crates.io](https://img.shields.io/crates/v/bandmix.svg)](https://crates.io/crates/bandmix)
-[![Docs.rs](https://docs.rs/bandmix/badge.svg)](https://docs.rs/bandmix)
 [![CI](https://github.com/lehuman/bandmix/workflows/CI/badge.svg)](https://github.com/lehuman/bandmix/actions)
 
 [About](#about) - [Usage](#usage) - [Related](#related) - [License](#license) - [Contribution](#contribution)
