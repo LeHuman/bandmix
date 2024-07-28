@@ -1,2 +1,0 @@
-- touch .cache folder by default
-- option to set cache folder and name scheme
