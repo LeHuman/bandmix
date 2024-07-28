@@ -4,7 +4,7 @@
 <!-- KEYWORDS: music, streaming  -->
 <!-- LANGUAGES: Rust -->
 <!-- TECHNOLOGY: RESTful API, HTTP -->
-<!-- STATUS: Work In Progress -->
+<!-- STATUS: Prototype -->
 
 ![Logo](<images/bandmix.png>)
 
@@ -15,7 +15,7 @@
 
 ## Status
 
-**`Work In progress`**
+**`Prototype`**
 
 ## About
 <!-- DESCRIPTION START -->
