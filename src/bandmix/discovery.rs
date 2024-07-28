@@ -28,7 +28,7 @@ static DISCOVERY_STATE: Lazy<Arc<AtomicBool>> = Lazy::new(|| Arc::new(AtomicBool
 
 static ALBUM_URL_QUEUE: Lazy<ArrayQueue<String>> = Lazy::new(|| ArrayQueue::new(32));
 static ALBUM_QUEUE: Lazy<ArrayQueue<Album>> = Lazy::new(|| ArrayQueue::new(4));
-static ALBUM_MAP: Lazy<DashMap<u32, Album>> = Lazy::new(|| DashMap::new());
+static ALBUM_MAP: Lazy<DashMap<u32, Album>> = Lazy::new(DashMap::new);
 
 // TODO: make reference to album.track using id's instead of cloning
 static MASTER_TRACK_LIST: Lazy<Arc<Slab<Track>>> = Lazy::new(|| Arc::new(Slab::<Track>::new()));
@@ -302,21 +302,21 @@ pub fn mark_current_track() -> Option<()> {
     Some(())
 }
 
-pub fn unmark_current_track() -> Option<()> {
-    let track_i = TRACK_CURSOR.load(Relaxed);
+// pub fn unmark_current_track() -> Option<()> {
+//     let track_i = TRACK_CURSOR.load(Relaxed);
 
-    let track = *FILTERED_TRACK_INDEX.get(track_i)?;
-    let track = MASTER_TRACK_LIST.get(track)?;
+//     let track = *FILTERED_TRACK_INDEX.get(track_i)?;
+//     let track = MASTER_TRACK_LIST.get(track)?;
 
-    unsafe {
-        let mut tc = TRACK_CACHE.lock().unwrap();
-        tc.track_ids.remove(&track.id);
-        if tc.save().is_err() {
-            warn!("Failed to save track cache");
-        }
-    };
-    Some(())
-}
+//     unsafe {
+//         let mut tc = TRACK_CACHE.lock().unwrap();
+//         tc.track_ids.remove(&track.id);
+//         if tc.save().is_err() {
+//             warn!("Failed to save track cache");
+//         }
+//     };
+//     Some(())
+// }
 
 pub fn current() -> Option<Entry> {
     let track = TRACK_CURSOR.load(Relaxed);
@@ -341,7 +341,9 @@ pub fn stop() {
     while !THREADS.is_empty() {
         match THREADS.pop() {
             Some(t) => {
-                t.join();
+                if t.join().is_err() {
+                    warn!("Internal thread error");
+                }
             }
             None => return,
         }

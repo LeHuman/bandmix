@@ -127,7 +127,7 @@ impl Function {
             );
         }
 
-        return func;
+        func
     }
 }
 

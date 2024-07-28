@@ -1,4 +1,4 @@
-use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, PlatformConfig};
+use souvlaki::{MediaControls, PlatformConfig};
 
 pub fn get_media_controls() -> MediaControls {
     #[cfg(not(target_os = "windows"))]
@@ -41,28 +41,5 @@ pub fn get_media_controls() -> MediaControls {
         hwnd,
     };
 
-    let controls = MediaControls::new(config).unwrap();
-
-    // // The closure must be Send and have a static lifetime.
-    // controls
-    //     .attach(|event: MediaControlEvent| println!("Event received: {:?}", event))
-    //     .unwrap();
-
-    // // Update the media metadata.
-    // controls
-    //     .set_metadata(MediaMetadata {
-    //         title: Some("Souvlaki Space Station"),
-    //         artist: Some("Slowdive"),
-    //         album: Some("Souvlaki"),
-    //         ..Default::default()
-    //     })
-    //     .unwrap();
-
-    // Your actual logic goes here.
-    // loop {
-    // std::thread::sleep(std::time::Duration::from_secs(1));
-    // }
-
-    // The controls automatically detach on drop.
-    return controls;
+    MediaControls::new(config).unwrap()
 }

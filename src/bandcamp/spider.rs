@@ -141,7 +141,7 @@ fn scrape_by_application_ld_json(dom: &Html) -> Option<Album> {
         vec![Track {
             id: track_id,
             num: 1,
-            name: track_name.to_string().replace("/", ":"),
+            name: track_name.to_string().replace('/', ":"),
             url,
             // lyrics: None,
             album_id: album.id,
@@ -175,8 +175,7 @@ fn scrape_by_application_ld_json(dom: &Html) -> Option<Album> {
                     id: track_id,
                     num: track.get("position").i32(),
                     name: decode_html_entities(&track.get("item.name").to_string())
-                        .replace("/", ":")
-                        .into(),
+                        .replace('/', ":"),
                     url: decode_html_entities(&url).to_string(),
                     // lyrics: Some(track.get("item.recordingOf.lyrics.text").to_string()),
                     album_id: album.id,

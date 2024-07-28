@@ -9,8 +9,8 @@ use tracing::debug;
 pub struct Player {
     // storage: TempStorageProvider,
     // settings: Settings<HttpStream<::reqwest::Client>>,
-    output_stream: OutputStream,
-    output_stream_handle: OutputStreamHandle,
+    _output_stream: OutputStream,
+    _output_stream_handle: OutputStreamHandle,
     pub sink: Sink,
 }
 
@@ -22,10 +22,10 @@ impl Player {
         Some(Player {
             // storage: TempStorageProvider::new(),
             // settings: Settings::default(),
-            output_stream: _stream,
-            output_stream_handle: handle,
+            _output_stream: _stream,
+            _output_stream_handle: handle,
             // decode_buffer: ArrayQueue::new(16),
-            sink: sink,
+            sink,
         })
     }
 
@@ -56,14 +56,8 @@ impl Player {
             url.parse().ok()?,
             TempStorageProvider::new(),
             Settings::default().on_progress(move |_client, stream_state| {
-                match stream_state.phase {
-                    // stream_download::StreamPhase::Downloading { chunk_size, .. } => {
-                    //     std::thread::sleep(Duration::from_millis(20));
-                    // }
-                    stream_download::StreamPhase::Complete => {
-                        debug!("Downloading Complete: {}", url_string);
-                    }
-                    _ => {}
+                if stream_state.phase == stream_download::StreamPhase::Complete {
+                    debug!("Downloading Complete: {}", url_string);
                 };
             }),
         )
