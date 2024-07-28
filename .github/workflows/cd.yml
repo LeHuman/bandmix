@@ -1,5 +1,6 @@
 name: CD # Continuous Deployment
 on:
+  workflow_dispatch:
   push:
     tags:
       - '[v]?[0-9]+.[0-9]+.[0-9]+'
@@ -109,7 +110,6 @@ jobs:
             target/${{ matrix.job.target }}/release/bandmix-*.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   publish-cargo:
     name: Publishing to Cargo
     runs-on: ubuntu-latest
