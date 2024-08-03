@@ -1,4 +1,3 @@
-<!-- PROJECT: bandmix -->
 <!-- TITLE: bandmix -->
 <!-- FONT: Mytupi -->
 <!-- KEYWORDS: music, streaming  -->
