@@ -174,7 +174,7 @@ fn discovery_load_tracks_job() {
         }
 
         let cap = FILTERED_TRACK_INDEX_CAP.load(Relaxed);
-        let cur = TRACK_CURSOR.load(Relaxed);
+        let mut cur = TRACK_CURSOR.load(Relaxed);
 
         // TODO: when should we wait?
         if DISCOVERY_STATE.load(Relaxed) && (cur < cap) && (cap - cur > 10) {
@@ -183,8 +183,8 @@ fn discovery_load_tracks_job() {
 
         if (cur < cap) && (cap - cur > 32) {
             debug!("Track List at capacity, waiting");
-            let cur = TRACK_CURSOR.load(Relaxed);
             while (cur >= cap) || ((cap - cur > 32) && DISCOVERY_STATE.load(Relaxed)) {
+                cur = TRACK_CURSOR.load(Relaxed);
                 sleep(Duration::from_millis(100));
             }
         }
