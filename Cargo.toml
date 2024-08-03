@@ -1,7 +1,7 @@
 [package]
 name = "bandmix"
 authors = ["LeHuman"]
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "A minimal autoplayer of bandcamp's discover section"
 repository = "https://github.com/lehuman/bandmix"
