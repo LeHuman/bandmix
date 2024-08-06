@@ -5,14 +5,14 @@ use std::collections::BTreeMap;
 use anyhow::Result;
 use html_escape::decode_html_entities;
 use scraper::{Html, Selector};
-use tracing::debug;
+use tracing::{debug, trace, warn};
 
 use super::models::{Album, Track};
 
 /// Parse data from the node: `document.querySelector('script[data-tralbum]')`
-fn scrape_by_data_tralbum(dom: &Html) -> Album {
-    let selector = Selector::parse("script[data-tralbum]").unwrap();
-    let element = dom.select(&selector).next().unwrap();
+fn scrape_by_data_tralbum(dom: &Html) -> Option<Album> {
+    let selector = Selector::parse("script[data-tralbum]").ok()?;
+    let element = dom.select(&selector).next()?;
 
     let mut album = Album::default();
 
@@ -64,20 +64,16 @@ fn scrape_by_data_tralbum(dom: &Html) -> Album {
         }
     }
 
-    album
+    if album.id == 0 {
+        warn!("Album {} has an id of 0", &album.name);
+    }
+
+    Some(album)
 }
 
-fn find_track_url_by_name(dom: &Html, track_name: &gjson::Value) -> Option<String> {
-    debug!("Searching for track by name {}", track_name);
-    let album = scrape_by_data_tralbum(dom);
-
-    album.tracks.iter().find_map(|(_id, inner_track)| {
-        if inner_track.name == track_name.str() {
-            Some(inner_track.url.clone())
-        } else {
-            None
-        }
-    })
+fn find_track_album_by_name(dom: &Html, track_name: &gjson::Value) -> Option<Album> {
+    trace!("Searching for track by name {}", track_name);
+    scrape_by_data_tralbum(dom)
 }
 
 /// Parse data from the node: `document.querySelector('script[type="application/ld+json"]')`
@@ -138,6 +134,8 @@ fn scrape_by_application_ld_json(dom: &Html) -> Option<Album> {
     const FILE_PATH: &str = "additionalProperty.#(name=file_mp3-128).value";
     const TRACK_ID: &str = "additionalProperty.#(name=track_id).value";
 
+    let mut tralbum_album = None;
+
     // case when current url is just a track
     album.tracks = if tracks.array().is_empty() {
         let mut url = decode_html_entities(&item.get(FILE_PATH).to_string()).to_string();
@@ -145,11 +143,24 @@ fn scrape_by_application_ld_json(dom: &Html) -> Option<Album> {
         let track_name = item.get("name");
 
         if url.is_empty() {
-            if let Some(track_url) = find_track_url_by_name(dom, &track_name) {
-                url = track_url;
+            tralbum_album = tralbum_album.or(find_track_album_by_name(dom, &track_name));
+            if let Some(tralbum_album) = &tralbum_album {
+                let track_url = tralbum_album.tracks.iter().find_map(|(_id, inner_track)| {
+                    if inner_track.name == track_name.str() {
+                        Some(inner_track.url.clone())
+                    } else {
+                        None
+                    }
+                });
+                if let Some(track_url) = track_url {
+                    url = track_url;
+                } else {
+                    // no url is found for the track's file
+                    warn!("No downloadable url found for '{}', skipping.", &track_name);
+                    return None;
+                }
             } else {
-                // no url is found for the track's file
-                eprintln!("No downloadable url found for '{}', skipping.", &track_name);
+                warn!("No downloadable url found for '{}', skipping.", &track_name);
                 return None;
             }
         }
@@ -167,44 +178,61 @@ fn scrape_by_application_ld_json(dom: &Html) -> Option<Album> {
         )])
     } else {
         // case when current url is an album
-        tracks
-            .array()
-            .iter()
-            .filter_map(|track| {
-                let mut url = track.get(&("item.".to_owned() + FILE_PATH)).to_string();
-                let track_id = track
-                    .get(&("item.".to_owned() + TRACK_ID))
-                    .to_string()
-                    .parse()
-                    .ok()?;
 
-                if url.is_empty() {
-                    let track_name = track.get("item.name");
+        let mut retval = BTreeMap::<u32, Track>::new();
 
-                    if let Some(track_url) = find_track_url_by_name(dom, &track_name) {
+        for track in tracks.array() {
+            let mut url = track.get(&("item.".to_owned() + FILE_PATH)).to_string();
+            let track_id = track
+                .get(&("item.".to_owned() + TRACK_ID))
+                .to_string()
+                .parse()
+                .ok()?;
+
+            if url.is_empty() {
+                let track_name = track.get("item.name");
+                tralbum_album = tralbum_album.or(find_track_album_by_name(dom, &track_name));
+                if let Some(tralbum_album) = &tralbum_album {
+                    let track_url = tralbum_album.tracks.iter().find_map(|(_id, inner_track)| {
+                        if inner_track.name == track_name.str() {
+                            Some(inner_track.url.clone())
+                        } else {
+                            None
+                        }
+                    });
+                    if let Some(track_url) = track_url {
                         url = track_url;
                     } else {
                         // no url is found for the track's file
-                        // eprintln!("No downloadable url found for '{}', skipping.", track_name);
-                        return None;
+                        warn!("No downloadable url found for '{}', skipping.", &track_name);
+                        continue;
                     }
+                } else {
+                    warn!("No downloadable url found for '{}', skipping.", &track_name);
+                    continue;
                 }
+            }
 
-                Some((
-                    track_id,
-                    Track {
-                        id: track_id,
-                        num: track.get("position").i32(),
-                        name: decode_html_entities(&track.get("item.name").to_string())
-                            .replace('/', ":"),
-                        url: decode_html_entities(&url).to_string(),
-                        // lyrics: Some(track.get("item.recordingOf.lyrics.text").to_string()),
-                        album_id: album.id,
-                    },
-                ))
-            })
-            .collect()
+            let name = decode_html_entities(&track.get("item.name").to_string()).replace('/', ":");
+            let name = String::from(html_escape::decode_html_entities(&name));
+
+            retval.insert(
+                track_id,
+                Track {
+                    id: track_id,
+                    num: track.get("position").i32(),
+                    name: name,
+                    url: decode_html_entities(&url).to_string(),
+                    // lyrics: Some(track.get("item.recordingOf.lyrics.text").to_string()),
+                    album_id: album.id,
+                },
+            );
+        }
+        retval
     };
+
+    album.name = String::from(html_escape::decode_html_entities(&album.name));
+    album.artist = String::from(html_escape::decode_html_entities(&album.artist));
 
     Some(album)
 }
