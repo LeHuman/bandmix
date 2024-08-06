@@ -169,9 +169,11 @@ fn discovery_load_albums_job() {
                 debug!("Filtered Album: {}", album.name);
             } else {
                 let id = album.id;
-                if ALBUM_MAP.insert(album.id, album).is_none() {
-                } else if let Err(error) = ALBUM_QUEUE.push(id) {
-                    warn!("Album error pushing to queue : {}", error); // IMPROVE: Actual logging
+                if ALBUM_MAP.insert(album.id, album).is_some() {
+                    warn!("Album collision pushing to map : {}", &id);
+                }
+                if let Err(error) = ALBUM_QUEUE.push(id) {
+                    warn!("Album error pushing to queue : {}", error);
                 }
             }
         } else {
@@ -248,8 +250,11 @@ fn discovery_load_tracks_job() {
             );
         } else if filtered_count > 0 {
             info!(
-                "Filtered {} tracks from {} by {}",
-                &filtered_count, &album.name, &album.artist
+                "Filtered {} track{} from {} by {}",
+                &filtered_count,
+                if filtered_count == 1 { "" } else { "s" },
+                &album.name,
+                &album.artist
             );
         }
 
@@ -298,22 +303,35 @@ pub fn start(
     DISCOVERY_STATE.store(true, SeqCst);
 
     // TODO: option to store cursor position
-    // unsafe {
-    //     let tc = TRACK_CACHE.lock().unwrap();
-    //     TRACK_CURSOR.store(tc.last_cursor, Relaxed);
-    // };
 
     let function = Function::get_web(0, genre, discovery_type, format, recommended_type);
-    let album_task = thread::spawn(discovery_load_albums_job);
-    let track_task = thread::spawn(discovery_load_tracks_job);
-    let url_task = thread::spawn(move || discovery_page_urls_job(function));
+    let mut tasks = Vec::new();
+    tasks.push(
+        thread::Builder::new()
+            .name("Discovery load Albums".to_string())
+            .spawn(discovery_load_albums_job),
+    );
+    tasks.push(
+        thread::Builder::new()
+            .name("Discovery load Tracks".to_string())
+            .spawn(discovery_load_tracks_job),
+    );
+    tasks.push(
+        thread::Builder::new()
+            .name("Discovery load URLs".to_string())
+            .spawn(move || discovery_page_urls_job(function)),
+    );
 
-    let error = THREADS
-        .push(album_task)
-        .and(THREADS.push(track_task))
-        .and(THREADS.push(url_task));
+    let mut error = false;
+    for task in tasks {
+        if let Ok(task) = task {
+            error |= THREADS.push(task).is_err();
+        } else {
+            error = true;
+        }
+    }
 
-    if error.is_err() {
+    if error {
         error!("Failed to push threads, stopping");
         stop();
     }
