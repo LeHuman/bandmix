@@ -372,7 +372,7 @@ pub fn mark_current_track() -> Option<()> {
     let album = ALBUM_MAP.get(&ids.0)?;
     let track = album.tracks.get(&ids.1)?;
 
-    add_listened_track(&track);
+    add_listened_track(track);
 
     if album_listened(&album) {
         add_listened_album(&album);

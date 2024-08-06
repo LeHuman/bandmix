@@ -51,7 +51,7 @@ fn scrape_by_data_tralbum(dom: &Html) -> Album {
                     (
                         id,
                         Track {
-                            id: id,
+                            id,
                             num: (index + 1) as i32,
                             name: item.get("title").to_string(),
                             url: item.get("file.mp3-128").to_string(),
