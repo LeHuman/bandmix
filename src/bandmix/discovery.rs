@@ -165,7 +165,7 @@ fn discovery_load_albums_job() {
             trace!("Processing Album : {}", album.name);
             if filtered_album(&album) {
                 // TODO: Latently prepend filtered albums onto master track list
-                debug!("Filtered Album: {}", album.name);
+                info!("Filtered Album: {}", album.name);
             } else {
                 let id = album.id;
                 if ALBUM_MAP.insert(id, album).is_some() {
