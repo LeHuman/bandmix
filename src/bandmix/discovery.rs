@@ -304,22 +304,17 @@ pub fn start(
     // TODO: option to store cursor position
 
     let function = Function::get_web(0, genre, discovery_type, format, recommended_type);
-    let mut tasks = Vec::new();
-    tasks.push(
+    let tasks = vec![
         thread::Builder::new()
             .name("Discovery load Albums".to_string())
             .spawn(discovery_load_albums_job),
-    );
-    tasks.push(
         thread::Builder::new()
             .name("Discovery load Tracks".to_string())
             .spawn(discovery_load_tracks_job),
-    );
-    tasks.push(
         thread::Builder::new()
             .name("Discovery load URLs".to_string())
             .spawn(move || discovery_page_urls_job(function)),
-    );
+    ];
 
     let mut error = false;
     for task in tasks {

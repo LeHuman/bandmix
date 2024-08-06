@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use anyhow::Result;
 use html_escape::decode_html_entities;
 use scraper::{Html, Selector};
-use tracing::{debug, trace, warn};
+use tracing::{trace, warn};
 
 use super::models::{Album, Track};
 
@@ -221,7 +221,7 @@ fn scrape_by_application_ld_json(dom: &Html) -> Option<Album> {
                 Track {
                     id: track_id,
                     num: track.get("position").i32(),
-                    name: name,
+                    name,
                     url: decode_html_entities(&url).to_string(),
                     // lyrics: Some(track.get("item.recordingOf.lyrics.text").to_string()),
                     album_id: album.id,
