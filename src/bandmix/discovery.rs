@@ -168,7 +168,10 @@ fn discovery_load_albums_job() {
                 debug!("Filtered Album: {}", album.name);
             } else {
                 let id = album.id;
-                if ALBUM_MAP.insert(album.id, album).is_some() {
+                if ALBUM_MAP.insert(id, album).is_some() {
+                    warn!("Album collision pushing to map : {}", &id);
+                }
+                if ALBUM_LISTENS.insert(id, Default::default()).is_some() {
                     warn!("Album collision pushing to map : {}", &id);
                 }
                 if let Err(error) = ALBUM_QUEUE.push(id) {
