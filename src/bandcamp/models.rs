@@ -1,13 +1,19 @@
 // https://github.com/pombadev/sunny/blob/8643b3c030c3ddc310111dda9c607108317b6140/src/lib/models.rs
 
-#[derive(Debug, Default, Clone)]
+use std::collections::BTreeMap;
+
+pub type AlbumID = u32;
+pub type TrackID = u32;
+pub type TrackNum = i32;
+
+#[derive(Debug, Default)]
 pub struct Track {
-    pub id: u32,
-    pub num: i32,
+    pub id: TrackID,
+    pub num: TrackNum,
     pub name: String,
     pub url: String,
     // pub lyrics: Option<String>,
-    pub album_id: u32,
+    pub album_id: AlbumID,
 }
 
 impl Track {
@@ -22,15 +28,15 @@ impl std::fmt::Display for Track {
     }
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug)]
 pub struct Album {
-    pub id: u32,
+    pub id: AlbumID,
     pub artist: String,
     pub name: String,
     pub url: String,
     pub release_date: String,
-    pub featured_track_num: Option<i32>,
-    pub tracks: Vec<Track>,
+    pub featured_track_num: Option<TrackNum>,
+    pub tracks: BTreeMap<TrackID, Track>,
     pub tags: Option<String>,
     pub album_art_url: Option<String>,
     pub artist_art_url: Option<String>,
@@ -43,7 +49,7 @@ impl std::fmt::Display for Album {
             result += &format!("\n{}", self.url);
         }
         result += &format!("\n {}", self.artist);
-        for track in &self.tracks {
+        for track in self.tracks.values() {
             let mut extra = " ";
             if let Some(featured) = self.featured_track_num {
                 if featured == track.num {
