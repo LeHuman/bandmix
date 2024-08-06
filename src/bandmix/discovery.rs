@@ -48,7 +48,6 @@ static mut DATA_CACHE: Lazy<Mutex<TrackCache>> =
 pub static TRACK_CURSOR: AtomicUsize = AtomicUsize::new(0);
 
 #[localsavefile(persist = true, version = 1)]
-#[derive(Default)]
 struct TrackCache {
     last_cursor: usize,
     track_ids: HashSet<u32>,
