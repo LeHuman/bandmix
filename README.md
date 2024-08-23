@@ -3,8 +3,8 @@
 <!-- KEYWORDS: music, streaming  -->
 <!-- LANGUAGES: Rust -->
 <!-- TECHNOLOGY: RESTful API, HTTP -->
-<!-- STATUS: Prototype -->
 
+<!-- LOGO -->
 ![Logo](<images/bandmix.png>)
 
 [![Crates.io](https://img.shields.io/crates/v/bandmix.svg)](https://crates.io/crates/bandmix)
@@ -14,6 +14,7 @@
 
 ## Status
 
+<!-- STATUS -->
 **`Prototype`**
 
 ## About
