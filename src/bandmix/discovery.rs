@@ -1,3 +1,4 @@
+#![allow(static_mut_refs)] // TODO: Remove unsafe code 😉
 use std::{
     collections::{BTreeSet, HashSet},
     sync::{
