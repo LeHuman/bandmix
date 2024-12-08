@@ -55,7 +55,7 @@ impl Player {
         let reader = StreamDownload::new_http(
             url.parse().ok()?,
             TempStorageProvider::new(),
-            Settings::default().on_progress(move |_client, stream_state| {
+            Settings::default().on_progress(move |_client, stream_state, _| {
                 if stream_state.phase == stream_download::StreamPhase::Complete {
                     debug!("Downloading Complete: {}", url_string);
                 };
