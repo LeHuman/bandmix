@@ -19,7 +19,7 @@ once_cell = "1.20.2"
 reqwest = { version = "0.12.9", features = ["blocking", "json"] }
 rodio = "0.20.1"
 savefile = "0.18.5"
-scraper = "0.21.0"
+scraper = "0.23.1"
 sharded-slab = "0.1.7"
 stream-download = "0.13.1"
 strum = { version = "0.26.3", features = ["derive"] }
