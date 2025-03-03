@@ -9,7 +9,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 anyhow = "1.0.94"
-chrono = "0.4.38"
+chrono = "0.4.40"
 crossbeam = { version = "0.8.4", features = ["crossbeam-queue"] }
 dashmap = "6.1.0"
 gjson = "0.8.1"
