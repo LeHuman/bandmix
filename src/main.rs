@@ -21,6 +21,7 @@ async fn new_track(track: &Entry, player: &Player) {
 use windows::{
     core::PCWSTR,
     Win32::{
+        Foundation::HINSTANCE,
         System::LibraryLoader::GetModuleHandleW,
         UI::WindowsAndMessaging::{LoadImageW, IMAGE_ICON, LR_DEFAULTSIZE},
     },
@@ -30,7 +31,7 @@ use windows::{
 fn load_icon() -> windows::core::Result<()> {
     let _icon = unsafe {
         LoadImageW(
-            GetModuleHandleW(None)?,
+            Some(HINSTANCE::from(GetModuleHandleW(None)?)),
             PCWSTR(1 as _), // Value must match the `nameID` in the .rc script
             IMAGE_ICON,
             0,
