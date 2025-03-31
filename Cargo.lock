@@ -3242,9 +3242,9 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "stream-download"
-version = "0.15.1"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "362de077b3b098490975fa0d3086a16f881ba96923ea2b12e4c039bad4caaca6"
+checksum = "5ef4b328516faa39e63093a08e0617d67ed9e4dc086105523f59cef693da2e88"
 dependencies = [
  "bytes",
  "educe",
@@ -3253,7 +3253,6 @@ dependencies = [
  "parking_lot",
  "rangemap",
  "reqwest",
- "tap",
  "tempfile",
  "thiserror 2.0.12",
  "tokio",
@@ -3431,12 +3430,6 @@ dependencies = [
  "core-foundation-sys",
  "libc",
 ]
-
-[[package]]
-name = "tap"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "tempfile"
