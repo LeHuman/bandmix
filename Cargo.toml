@@ -21,7 +21,7 @@ rodio = "0.20.1"
 savefile = "0.18.6"
 scraper = "0.23.1"
 sharded-slab = "0.1.7"
-stream-download = "0.15.1"
+stream-download = "0.21.1"
 strum = { version = "0.27.1", features = ["derive"] }
 tokio = { version = "1.44.2", features = ["full"] }
 tracing = "0.1.41"
