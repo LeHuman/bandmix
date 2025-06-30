@@ -29,15 +29,15 @@ tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 url = "2.5.4"
 
 [target.'cfg(target_os = "macos")'.dependencies]
-souvlaki = "0.8.2"
+souvlaki = "0.8.3"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-souvlaki = { version = "0.8.1", default-features = false, features = [
+souvlaki = { version = "0.8.3", default-features = false, features = [
     "use_zbus",
 ] }
 
 [target.'cfg(windows)'.dependencies]
-souvlaki = "0.8.2"
+souvlaki = "0.8.3"
 windows = { version = "0.60.0", features = [
     "Media",
     "Win32_Foundation",
