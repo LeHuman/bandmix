@@ -23,7 +23,7 @@ scraper = "0.23.1"
 sharded-slab = "0.1.7"
 stream-download = "0.15.1"
 strum = { version = "0.27.1", features = ["derive"] }
-tokio = { version = "1.44.2", features = ["full"] }
+tokio = { version = "1.46.1", features = ["full"] }
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 url = "2.5.4"
