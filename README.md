@@ -1,5 +1,6 @@
 <!-- TITLE: bandmix -->
 <!-- FONT: Mytupi -->
+<!-- COLOR: #1a1715, #aa7363, #e2e2e2 -->
 <!-- KEYWORDS: music, streaming  -->
 <!-- LANGUAGES: Rust -->
 <!-- TECHNOLOGY: RESTful API, HTTP -->
