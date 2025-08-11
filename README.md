@@ -11,7 +11,7 @@
 [![Crates.io](https://img.shields.io/crates/v/bandmix.svg)](https://crates.io/crates/bandmix)
 [![CI](https://github.com/lehuman/bandmix/workflows/CI/badge.svg)](https://github.com/lehuman/bandmix/actions)
 
-[About](#about) - [Usage](#usage) - [Related](#related) - [License](#license) - [Contribution](#contribution)
+[About](#about) - [Demo](#demo) - [Usage](#usage) - [Related](#related) - [License](#license) - [Contribution](#contribution)
 
 ## Status
 
@@ -24,10 +24,15 @@ This is a minimal autoplayer of [bandcamp's discover](https://bandcamp.com/disco
 <!-- DESCRIPTION END -->
 
 ### Why
-
+<!-- WHY START -->
 I wanted a way to automatically play entire albums on the discover page, as I like to listen to whatever albums pop up there.
-
+<!-- WHY END -->
 I wrote the app in rust for practice.
+
+## Demo
+
+<!-- DEMO -->
+![Demo](images/demo.gif)
 
 ## Usage
 
