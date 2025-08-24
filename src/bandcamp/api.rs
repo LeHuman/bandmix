@@ -1,20 +1,8 @@
 #![allow(non_camel_case_types, unreachable_patterns)]
 use super::super::http_client::HTTPClient;
-use http_cache_reqwest::{
-    CACacheManager, Cache, CacheMode, CacheOptions, HttpCache, HttpCacheOptions,
-};
 use once_cell::sync::Lazy;
-use reqwest;
-use reqwest::Client;
-use reqwest_middleware::ClientBuilder;
-use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
-use std::{collections::HashMap, env};
-use tokio::runtime::Runtime;
-use tracing::error;
+use std::collections::HashMap;
 use url::Url;
-
-static TOKIO_RUNTIME: Lazy<Runtime> =
-    Lazy::new(|| Runtime::new().expect("Failed to create Tokio runtime"));
 
 pub struct Api<'a> {
     base_url: &'a str,
@@ -23,7 +11,7 @@ pub struct Api<'a> {
 
 pub const DISCOVER_API: Api = Api {
     base_url: "https://bandcamp.com/api/discover/3",
-    client: Lazy::new(|| HTTPClient::new("bandcamp.com", "bandmix", "api", u32::MAX)),
+    client: Lazy::new(|| HTTPClient::new("bandmix", "api", u32::MAX)),
 };
 
 #[derive(Clone, Default)]

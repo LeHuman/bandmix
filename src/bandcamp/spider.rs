@@ -1,23 +1,18 @@
 // https://github.com/pombadev/sunny/blob/8643b3c030c3ddc310111dda9c607108317b6140/src/lib/spider.rs#L132
 
-use anyhow::{bail, Ok, Result};
+use anyhow::{Ok, Result};
 use html_escape::decode_html_entities;
-use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
 use once_cell::sync::Lazy;
-use reqwest::Client;
-use reqwest_middleware::ClientBuilder;
-use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use scraper::{Html, Selector};
+use std::collections::BTreeMap;
 use std::u32;
-use std::{collections::BTreeMap, env};
-use tracing::{error, trace, warn};
+use tracing::{trace, warn};
 use url::Url;
 
 use super::super::http_client::HTTPClient;
 use super::models::{Album, Track};
 
-const CLIENT: Lazy<HTTPClient> =
-    Lazy::new(|| HTTPClient::new("bandcamp.com", "bandmix", "spider", u32::MAX));
+const CLIENT: Lazy<HTTPClient> = Lazy::new(|| HTTPClient::new("bandmix", "spider", u32::MAX));
 
 /// Parse data from the node: `document.querySelector('script[data-tralbum]')`
 fn scrape_by_data_tralbum(dom: &Html) -> Option<Album> {

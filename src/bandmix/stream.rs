@@ -3,7 +3,7 @@ use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
 use rodio::cpal::traits::HostTrait;
 use rodio::{cpal, OutputStream, Sink};
-use std::{env, u32};
+use std::env;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Once};
 use stream_download::storage::temp::TempStorageProvider;
