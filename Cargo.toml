@@ -54,3 +54,6 @@ embed-resource = "3.0.5"
 
 [dev-dependencies]
 criterion = { version = "0.7.0", features = ["html_reports"] }
+
+[package.metadata.cargo-machete]
+ignored = ["savefile"]
