@@ -1,26 +1,36 @@
 use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
+use localsavefile::{localsavefile, LocalSaveFilePersistent};
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
 use rodio::cpal::traits::HostTrait;
 use rodio::{cpal, OutputStream, Sink};
-use std::env;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Once};
+use std::{env, time};
 use stream_download::storage::temp::TempStorageProvider;
 use stream_download::{Settings, StreamDownload};
 use tracing::{debug, error, info, warn};
+use url::Url;
+
+#[localsavefile(persist = true, version = 0)]
+struct PlayerCache {
+    url: String,
+    position: time::Duration,
+}
 
 pub struct Player {
     stream_handle: OutputStream,
     pub sink: Sink,
     dead: Arc<AtomicBool>,
     last_url: String,
+    seek_back: bool,
+    cache: PlayerCache,
 }
 
 static CACHE_INIT: Once = Once::new();
 
 impl Player {
-    pub fn new() -> Option<Player> {
+    pub fn new(seek_back: bool) -> Option<Player> {
         let dead = Arc::new(AtomicBool::new(false));
         let dead_callback = dead.clone();
 
@@ -31,6 +41,8 @@ impl Player {
             sink,
             dead,
             last_url: String::default(),
+            seek_back,
+            cache: PlayerCache::load_default(),
         })
     }
 
@@ -117,19 +129,25 @@ impl Player {
 
     // TODO: decouple start and decoding of stream
     pub async fn start(&mut self, url: &str) -> Option<()> {
-        let url_string = url.to_string();
+        let url = Url::parse(url).ok()?;
+
+        let mut url_base = url.clone();
+        url_base.set_query(None);
+
+        let url_string = url_base.to_string();
 
         if self.last_url != url_string {
             self.last_url = url_string.clone();
             debug!("Reading: {}", url);
         }
 
+        let captured_url_string = url.to_string();
         let reader = StreamDownload::new_http_with_middleware(
-            url.parse().ok()?,
+            url.clone(),
             TempStorageProvider::new(),
             Settings::default().on_progress(move |_client, stream_state, _| {
                 if stream_state.phase == stream_download::StreamPhase::Complete {
-                    debug!("Downloading Complete: {}", url_string);
+                    debug!("Downloading Complete: {}", captured_url_string);
                 };
             }),
         )
@@ -144,8 +162,39 @@ impl Player {
         if !empty {
             self.sink.skip_one();
         }
+
         debug!("New Source Playing: {}", url);
+
+        if self.seek_back
+            && (self.cache.url == url_string)
+            && (self.cache.position != time::Duration::default())
+        {
+            if self.sink.try_seek(self.cache.position).is_ok() {
+                info!(
+                    "Seeked back to {}s from cache",
+                    self.cache.position.as_secs_f64()
+                );
+            }
+        } else {
+            self.cache.url = url_string;
+            self.cache.position = time::Duration::default();
+            self.save_cache();
+        }
+
         Some(())
+    }
+
+    fn save_cache(&mut self) {
+        if self.cache.save().is_err() {
+            warn!("Failed to save player cache");
+        }
+    }
+
+    pub fn save_position(&mut self) {
+        if self.seek_back && !self.is_paused() {
+            self.cache.position = self.sink.get_pos();
+            self.save_cache();
+        }
     }
 
     pub fn has_error(&self) -> bool {
