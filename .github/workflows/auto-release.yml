@@ -12,6 +12,11 @@ jobs:
     name: Auto Release
     runs-on: ubuntu-latest
     steps:
+      - name: Install packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y pkg-config alsa libasound2-dev libdbus-1-dev openssl
       - name: GitHub Checks
         uses: poseidon/wait-for-status-checks@v0.6.0
         with:
@@ -140,11 +145,7 @@ jobs:
           set +e
           git tag v${{ env.VERSION }} || true
           git push origin tag v${{ env.VERSION }}
-      - name: Publish localsavefile-derive #TODO: Rust CI/CD externally
-        run: cargo publish -p localsavefile-derive
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-      - name: Publish localsavefile
-        run: cargo publish -p localsavefile
+      - name: Publish bandmix #TODO: Rust CI/CD externally
+        run: cargo publish
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
