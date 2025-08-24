@@ -1,7 +1,7 @@
 use std::{
     sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
-    time::{self, Duration},
+    time::Duration,
 };
 
 use bandmix::{
@@ -15,6 +15,7 @@ use tracing_subscriber::FmtSubscriber;
 
 mod bandcamp;
 mod bandmix;
+mod http_client;
 
 async fn new_track(track: &Entry, player: &mut Player) {
     println!("NOW PLAYING: {track}");
@@ -52,7 +53,7 @@ async fn main() {
     let _ = load_icon();
 
     let subscriber = FmtSubscriber::builder()
-        .with_max_level(Level::DEBUG)
+        .with_max_level(Level::INFO)
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("Setting default subscriber failed");
 

@@ -117,7 +117,7 @@ fn filtered_album(album: &Album) -> bool {
 fn discovery_load_album_urls_task(function: &Function) -> Option<()> {
     let query = bandcamp::api::DISCOVER_API.build_query(function).ok()?;
     debug!("Obtaining URLs : {}", query);
-    let result = bandcamp::api::Api::request(query).ok()?;
+    let result = bandcamp::api::DISCOVER_API.request(query).ok()?;
     let item = gjson::get(&result, "@this.items.#(type=a)#.url_hints");
 
     item.each(|_, value: gjson::Value| {

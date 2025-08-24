@@ -1,4 +1,5 @@
 #![allow(non_camel_case_types, unreachable_patterns)]
+use super::super::http_client::HTTPClient;
 use http_cache_reqwest::{
     CACacheManager, Cache, CacheMode, CacheOptions, HttpCache, HttpCacheOptions,
 };
@@ -17,10 +18,12 @@ static TOKIO_RUNTIME: Lazy<Runtime> =
 
 pub struct Api<'a> {
     base_url: &'a str,
+    client: Lazy<HTTPClient>,
 }
 
 pub const DISCOVER_API: Api = Api {
     base_url: "https://bandcamp.com/api/discover/3",
+    client: Lazy::new(|| HTTPClient::new("bandcamp.com", "bandmix", "api", u32::MAX)),
 };
 
 #[derive(Clone, Default)]
@@ -163,64 +166,19 @@ impl Api<'_> {
         Ok(url.to_owned())
     }
 
-    pub fn request(url: Url) -> Result<String, Box<dyn std::error::Error>> {
-        // IMPROVE: Consolidate caching clients
-        let temp_path = env::temp_dir().join("bandmix").join("api");
+    pub fn request(&self, url: Url) -> Result<String, Box<dyn std::error::Error>> {
+        let result = self.client.fetch(url);
 
-        let retry_policy = ExponentialBackoff::builder().build_with_max_retries(10);
-
-        let mut options = HttpCacheOptions::default();
-        let mut cache_options = CacheOptions::default();
-        cache_options.ignore_cargo_cult = true;
-        options.cache_options = Some(cache_options);
-
-        let client = ClientBuilder::new(Client::new())
-            .with(RetryTransientMiddleware::new_with_policy(retry_policy))
-            .with(Cache(HttpCache {
-                mode: CacheMode::Default,
-                manager: CACacheManager::new(temp_path, true),
-                options,
-            }))
-            .build();
-
-        let url_str = url.to_string();
-
-        let result = TOKIO_RUNTIME.block_on(async move {
-            let response = client.get(url).send().await;
-            if let Err(err) = response.as_ref() {
-                error!("{}", err);
-            }
-
-            let r = response.ok()?;
-
-            if r.status().is_success() {
-                Some((r.status(), Some(r.bytes().await.ok()?.to_vec())))
-            } else {
-                Some((r.status(), None))
-            }
-        });
-
-        let Some((status, data)) = result else {
-            return Err(format!("Failed to get response on request for {url_str}").into());
+        let Ok(body) = result else {
+            return Err("Failed to get result from api".into());
         };
 
-        if status.is_success() {
-            let Some(body) = data else {
-                return Err(
-                    format!("Failed to get data after successful request for {url_str}").into(),
-                );
-            };
-
-            let json = String::from_utf8(body)?;
-
-            if !gjson::valid(&json) {
-                return Err("Failed to get valid json".into());
-            }
-
-            Ok(json)
-        } else {
-            Err(format!("Failed to get a successful response: {}", status))?
+        let json = String::from_utf8(body)?;
+        if !gjson::valid(&json) {
+            return Err("Failed to get valid json".into());
         }
+
+        Ok(json)
     }
 }
 
@@ -231,7 +189,7 @@ fn test_query_request() {
         .expect("Failed to build url");
 
     let mut _res: Result<String, Box<dyn std::error::Error>> = Ok(String::default());
-    _res = Api::request(url);
+    _res = DISCOVER_API.request(url);
 
     assert!(_res.is_ok());
     assert!(_res.unwrap() != String::default());

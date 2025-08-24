@@ -8,14 +8,16 @@ use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use scraper::{Html, Selector};
+use std::u32;
 use std::{collections::BTreeMap, env};
-use tokio::runtime::Runtime;
 use tracing::{error, trace, warn};
+use url::Url;
 
+use super::super::http_client::HTTPClient;
 use super::models::{Album, Track};
 
-static TOKIO_RUNTIME: Lazy<Runtime> =
-    Lazy::new(|| Runtime::new().expect("Failed to create Tokio runtime"));
+const CLIENT: Lazy<HTTPClient> =
+    Lazy::new(|| HTTPClient::new("bandcamp.com", "bandmix", "spider", u32::MAX));
 
 /// Parse data from the node: `document.querySelector('script[data-tralbum]')`
 fn scrape_by_data_tralbum(dom: &Html) -> Option<Album> {
@@ -253,50 +255,12 @@ fn get_album(dom: &Html) -> Option<Album> {
 
 /// Get [`Html`] of a page.
 fn fetch_html(url: &str) -> Result<Html> {
-    let temp_path = env::temp_dir().join("bandmix").join("spider");
+    let url = Url::parse(url)?;
 
-    let retry_policy = ExponentialBackoff::builder().build_with_max_retries(10);
+    let result = CLIENT.fetch(url)?;
+    let body = String::from_utf8(result)?;
 
-    let client = ClientBuilder::new(Client::new())
-        .with(RetryTransientMiddleware::new_with_policy(retry_policy))
-        .with(Cache(HttpCache {
-            mode: CacheMode::Default,
-            manager: CACacheManager::new(temp_path, true),
-            options: HttpCacheOptions::default(),
-        }))
-        .build();
-
-    let url_str = url.to_string();
-
-    let result = TOKIO_RUNTIME.block_on(async move {
-        let response = client.get(url).send().await;
-        if let Err(err) = response.as_ref() {
-            error!("{}", err);
-        }
-
-        let r = response.ok()?;
-
-        if r.status().is_success() {
-            Some((r.status(), Some(r.bytes().await.ok()?.to_vec())))
-        } else {
-            Some((r.status(), None))
-        }
-    });
-
-    let Some((status, data)) = result else {
-        bail!("Failed to get response on request for {url_str}");
-    };
-
-    if status.is_success() {
-        let Some(body) = data else {
-            bail!("Failed to get data after successful request for {url_str}");
-        };
-        let body = String::from_utf8(body)?;
-
-        Ok(Html::parse_document(body.as_ref()))
-    } else {
-        bail!("Failed to fetch html for {url_str}")
-    }
+    Ok(Html::parse_document(body.as_ref()))
 }
 
 pub fn fetch_album(url: &str) -> Option<Album> {

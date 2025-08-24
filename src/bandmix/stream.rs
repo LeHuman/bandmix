@@ -1,7 +1,9 @@
 use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
+use reqwest_retry::policies::ExponentialBackoff;
+use reqwest_retry::RetryTransientMiddleware;
 use rodio::cpal::traits::HostTrait;
 use rodio::{cpal, OutputStream, Sink};
-use std::env;
+use std::{env, u32};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Once};
 use stream_download::storage::temp::TempStorageProvider;
@@ -39,6 +41,9 @@ impl Player {
             let temp_path = env::temp_dir().join("bandmix").join("stream");
             debug!("Storing stream cache to {}", temp_path.to_string_lossy());
 
+            // TODO: cancellation token for backend? How to force skip / failure?
+            let retry_policy = ExponentialBackoff::builder().build_with_max_retries(32);
+
             // IMPROVE: Make use of streaming variant of cache
             let middle = Cache(HttpCache {
                 mode: CacheMode::Default,
@@ -47,6 +52,7 @@ impl Player {
             });
 
             Settings::add_default_middleware(middle);
+            Settings::add_default_middleware(RetryTransientMiddleware::new_with_policy(retry_policy));
         });
     }
 
