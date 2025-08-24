@@ -67,6 +67,32 @@ fn album_listened(album: &Album) -> bool {
     album.tracks.values().all(|t| listens.contains(&t.id))
 }
 
+fn remove_listened_track(track: &Track) {
+    if let Some(mut listens) = ALBUM_LISTENS.get_mut(&track.album_id) {
+        if !listens.remove(&track.id) {
+            warn!(
+                "Track ID removed from album listened, but did not exist {}",
+                track.id
+            );
+        }
+    } else {
+        warn!("Failed to get album listen entry for track");
+    };
+    if let Ok(mut tc) = unsafe { DATA_CACHE.lock() } {
+        if !tc.track_ids.remove(&track.id) {
+            warn!(
+                "Track ID removed from listened cache, but did not exist {}",
+                track.id
+            );
+        }
+        if tc.save().is_err() {
+            warn!("Failed to save track cache");
+        }
+    } else {
+        warn!("Failed to lock data cache");
+    }
+}
+
 fn add_listened_track(track: &Track) {
     // FIXME: will get_mut cause deadlock issues here?
     if let Some(mut listens) = ALBUM_LISTENS.get_mut(&track.album_id) {
@@ -87,6 +113,22 @@ fn add_listened_track(track: &Track) {
 fn add_listened_album(album: &Album) {
     if let Ok(mut tc) = unsafe { DATA_CACHE.lock() } {
         tc.album_ids.insert(album.id);
+        if tc.save().is_err() {
+            warn!("Failed to save album cache");
+        }
+    } else {
+        warn!("Failed to lock data cache");
+    }
+}
+
+fn remove_listened_album(album: &Album) {
+    if let Ok(mut tc) = unsafe { DATA_CACHE.lock() } {
+        if !tc.album_ids.remove(&album.id) {
+            warn!(
+                "Album ID removed from listened cache, but did not exist {}",
+                album.id
+            );
+        }
         if tc.save().is_err() {
             warn!("Failed to save album cache");
         }
@@ -396,7 +438,20 @@ pub fn mark_current_track() -> Option<()> {
     Some(())
 }
 
-// TODO: unmark_current_track
+pub fn unmark_current_track() -> Option<()> {
+    let track_i = TRACK_CURSOR.load(Relaxed);
+    let track_fi = *FILTERED_TRACK_INDEX.get(track_i)?;
+    let ids = MASTER_TRACK_LIST.get(track_fi)?;
+    let album = ALBUM_MAP.get(&ids.0)?;
+    let track = album.tracks.get(&ids.1)?;
+
+    remove_listened_track(track);
+
+    if !album_listened(&album) {
+        remove_listened_album(&album);
+    }
+    Some(())
+}
 
 pub fn current() -> Option<Entry> {
     let track = TRACK_CURSOR.load(Relaxed);

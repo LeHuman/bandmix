@@ -58,7 +58,8 @@ async fn main() {
     tracing::subscriber::set_global_default(subscriber).expect("Setting default subscriber failed");
 
     let mut controls = get_media_controls();
-    let mut player = Player::new().expect("Failed to get Player");
+    // TODO: user argument for seek_back
+    let mut player = Player::new(true).expect("Failed to get Player");
     let update_trigger: Arc<AtomicBool> = Arc::new(AtomicBool::new(true));
     let update_event: Arc<Mutex<MediaControlEvent>> = Arc::new(Mutex::new(MediaControlEvent::Play));
     let update_trigger_clone: Arc<AtomicBool> = Arc::clone(&update_trigger);
@@ -68,6 +69,7 @@ async fn main() {
     Player::enable_caching();
 
     discovery::start(None, None, None, None);
+
     controls
         .attach(move |event: MediaControlEvent| {
             debug!("Event received: {:?}", event);
@@ -81,7 +83,6 @@ async fn main() {
 
     loop {
         // TODO: separate user and internal controls
-
         if has_started && player.has_error() {
             // IMPROVE: non-blocking restart
             error!("Attempting to continually restart audio");
@@ -89,6 +90,8 @@ async fn main() {
                 thread::sleep(Duration::from_millis(100));
             }
             debug!("Recovered from error");
+        } else if has_started {
+            player.save_position();
         }
 
         if has_started && player.empty() {
@@ -151,7 +154,7 @@ async fn main() {
             MediaControlEvent::Next => {
                 println!("[NEXT]");
                 if discovery::mark_current_track().is_none() {
-                    eprintln!("Failed to mark last track");
+                    error!("Failed to mark last track");
                 }
                 track = discovery::next().unwrap_or_default();
                 new_track(&track, &mut player).await;
@@ -159,6 +162,9 @@ async fn main() {
             MediaControlEvent::Previous => {
                 println!("[PREVIOUS]");
                 track = discovery::previous().unwrap_or_default();
+                if discovery::unmark_current_track().is_none() {
+                    error!("Failed to unmark this track");
+                }
                 new_track(&track, &mut player).await;
             }
             MediaControlEvent::Stop => {
