@@ -1,7 +1,7 @@
 use std::{
     sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
-    time::Duration,
+    time::{self, Duration},
 };
 
 use bandmix::{
@@ -10,7 +10,7 @@ use bandmix::{
     stream::Player,
 };
 use souvlaki::{MediaControlEvent, MediaMetadata};
-use tracing::{debug, error, warn, Level};
+use tracing::{debug, error, trace, warn, Level};
 use tracing_subscriber::FmtSubscriber;
 
 mod bandcamp;
@@ -19,7 +19,9 @@ mod http_client;
 
 async fn new_track(track: &Entry, player: &mut Player) {
     println!("NOW PLAYING: {track}");
-    player.start(&track.url).await;
+    if let Err(e) = player.start(&track.url).await {
+        error!("{e}");
+    }
 }
 
 #[cfg(target_os = "windows")]
@@ -53,7 +55,7 @@ async fn main() {
     let _ = load_icon();
 
     let subscriber = FmtSubscriber::builder()
-        .with_max_level(Level::INFO)
+        .with_max_level(Level::TRACE)
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("Setting default subscriber failed");
 
@@ -81,17 +83,30 @@ async fn main() {
 
     let mut last_track = Entry::default();
 
+    let mut last = time::Instant::now();
+    static SAVE_INTERVAL: Duration = Duration::from_millis(500);
+
     loop {
         // TODO: separate user and internal controls
         if has_started && player.has_error() {
             // IMPROVE: non-blocking restart
             error!("Attempting to continually restart audio");
-            while player.rebuild().await.is_none() {
-                thread::sleep(Duration::from_millis(100));
+            loop {
+                let result = player.rebuild().await;
+                if result.is_ok() {
+                    break;
+                }
+                if let Err(e) = result {
+                    error!("{}", e);
+                }
+                thread::sleep(Duration::from_millis(250));
             }
             debug!("Recovered from error");
-        } else if has_started {
+        } else if has_started && (time::Instant::now() > (last + SAVE_INTERVAL)) {
+            last = time::Instant::now();
+            // TODO: localsavefile "lock" strategy for saving to prevent data loss
             player.save_position();
+            trace!("Saved position");
         }
 
         if has_started && player.empty() {

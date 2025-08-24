@@ -1,5 +1,7 @@
+use anyhow::Context;
 use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
 use localsavefile::{localsavefile, LocalSaveFilePersistent};
+use once_cell::sync::Lazy;
 use reqwest_retry::policies::ExponentialBackoff;
 use reqwest_retry::RetryTransientMiddleware;
 use rodio::cpal::traits::HostTrait;
@@ -22,25 +24,27 @@ pub struct Player {
     stream_handle: OutputStream,
     pub sink: Sink,
     dead: Arc<AtomicBool>,
-    last_url: String,
+    last_url: Url,
     seek_back: bool,
     cache: PlayerCache,
 }
 
 static CACHE_INIT: Once = Once::new();
+static DEFAULT_URL: Lazy<Url> =
+    Lazy::new(|| Url::parse("https://example.net").expect("Failed to create default URL"));
 
 impl Player {
-    pub fn new(seek_back: bool) -> Option<Player> {
+    pub fn new(seek_back: bool) -> anyhow::Result<Player> {
         let dead = Arc::new(AtomicBool::new(false));
         let dead_callback = dead.clone();
 
         let (stream_handle, sink) = Self::default_handle(dead_callback)?;
 
-        Some(Player {
+        Ok(Player {
             stream_handle,
             sink,
             dead,
-            last_url: String::default(),
+            last_url: DEFAULT_URL.clone(),
             seek_back,
             cache: PlayerCache::load_default(),
         })
@@ -70,14 +74,12 @@ impl Player {
         });
     }
 
-    fn default_handle(callback: Arc<AtomicBool>) -> Option<(OutputStream, Sink)> {
+    fn default_handle(callback: Arc<AtomicBool>) -> anyhow::Result<(OutputStream, Sink)> {
         let default_device = cpal::default_host()
             .default_output_device()
-            .ok_or("No default audio output device is found.")
-            .ok()?;
+            .context("No default audio output device is found.")?;
 
-        let stream_handle = rodio::OutputStreamBuilder::from_device(default_device)
-            .ok()?
+        let stream_handle = rodio::OutputStreamBuilder::from_device(default_device)?
             .with_error_callback(move |err| {
                 if let cpal::StreamError::DeviceNotAvailable = err {
                     error!("Device error: {}", err);
@@ -87,17 +89,16 @@ impl Player {
                 debug!("Triggering restart");
                 callback.store(true, Ordering::SeqCst);
             })
-            .open_stream_or_fallback()
-            .ok()?;
+            .open_stream_or_fallback()?;
 
         let mixer = stream_handle.mixer();
         let sink: Sink = rodio::Sink::connect_new(mixer);
         sink.pause();
 
-        Some((stream_handle, sink))
+        Ok((stream_handle, sink))
     }
 
-    pub async fn rebuild(&mut self) -> Option<()> {
+    pub async fn rebuild(&mut self) -> anyhow::Result<()> {
         self.dead.store(false, Ordering::SeqCst);
         let dead_callback = self.dead.clone();
 
@@ -109,9 +110,9 @@ impl Player {
         self.stream_handle = stream_handle;
         self.sink = sink;
 
-        if !self.last_url.is_empty() {
+        if self.last_url != DEFAULT_URL.clone() {
             info!("Restarting audio");
-            self.start(&self.last_url.clone()).await?;
+            self.start_url(&self.last_url.clone(), false).await?;
         }
 
         if playing {
@@ -124,22 +125,25 @@ impl Player {
             debug!("Seeked back to {}", position.as_secs_f64());
         }
 
-        Some(())
+        Ok(())
+    }
+
+    fn url_remove_query(url: &Url) -> String {
+        let mut url_base = url.clone();
+        url_base.set_query(None);
+        url_base.to_string()
+    }
+
+    pub async fn start(&mut self, url: &str) -> anyhow::Result<()> {
+        self.start_url(&url.parse()?, true).await
     }
 
     // TODO: decouple start and decoding of stream
-    pub async fn start(&mut self, url: &str) -> Option<()> {
-        let url = Url::parse(url).ok()?;
+    pub async fn start_url(&mut self, url: &Url, cached_seek: bool) -> anyhow::Result<()> {
+        let url_string = Self::url_remove_query(&url);
+        self.last_url = url.clone();
 
-        let mut url_base = url.clone();
-        url_base.set_query(None);
-
-        let url_string = url_base.to_string();
-
-        if self.last_url != url_string {
-            self.last_url = url_string.clone();
-            debug!("Reading: {}", url);
-        }
+        debug!("Reading: {}", url);
 
         let captured_url_string = url.to_string();
         let reader = StreamDownload::new_http_with_middleware(
@@ -151,11 +155,10 @@ impl Player {
                 };
             }),
         )
-        .await
-        .ok()?;
+        .await?;
 
         debug!("Decoding: {}", url);
-        let decode = rodio::Decoder::new(reader).ok()?;
+        let decode = rodio::Decoder::new(reader)?;
 
         let empty = self.sink.empty();
         self.sink.append(decode);
@@ -165,7 +168,8 @@ impl Player {
 
         debug!("New Source Playing: {}", url);
 
-        if self.seek_back
+        if cached_seek
+            && self.seek_back
             && (self.cache.url == url_string)
             && (self.cache.position != time::Duration::default())
         {
@@ -181,7 +185,7 @@ impl Player {
             self.save_cache();
         }
 
-        Some(())
+        Ok(())
     }
 
     fn save_cache(&mut self) {
