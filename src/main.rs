@@ -1,7 +1,7 @@
 use std::{
     sync::{atomic::AtomicBool, Arc, Mutex},
     thread,
-    time::Duration,
+    time::{self, Duration},
 };
 
 use bandmix::{
@@ -52,7 +52,7 @@ async fn main() {
     let _ = load_icon();
 
     let subscriber = FmtSubscriber::builder()
-        .with_max_level(Level::DEBUG)
+        .with_max_level(Level::INFO)
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("Setting default subscriber failed");
 
@@ -63,7 +63,8 @@ async fn main() {
     let update_trigger_clone: Arc<AtomicBool> = Arc::clone(&update_trigger);
     let update_event_clone: Arc<Mutex<MediaControlEvent>> = Arc::clone(&update_event);
     let mut has_started = false;
-    player.pause();
+
+    Player::enable_caching();
 
     discovery::start(None, None, None, None);
     controls

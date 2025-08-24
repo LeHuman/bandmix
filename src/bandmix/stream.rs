@@ -1,9 +1,9 @@
+use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
 use rodio::cpal::traits::HostTrait;
 use rodio::{cpal, OutputStream, Sink};
+use std::env;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::thread;
-use std::time::Duration;
+use std::sync::{Arc, Once};
 use stream_download::storage::temp::TempStorageProvider;
 use stream_download::{Settings, StreamDownload};
 use tracing::{debug, error, info, warn};
@@ -15,34 +15,14 @@ pub struct Player {
     last_url: String,
 }
 
+static CACHE_INIT: Once = Once::new();
+
 impl Player {
     pub fn new() -> Option<Player> {
-        let default_device = cpal::default_host()
-            .default_output_device()
-            .ok_or("No default audio output device is found.")
-            .ok()?;
-
         let dead = Arc::new(AtomicBool::new(false));
         let dead_callback = dead.clone();
 
-        let stream_handle = rodio::OutputStreamBuilder::from_device(default_device)
-            .ok()?
-            .with_error_callback(move |err| {
-                if let cpal::StreamError::DeviceNotAvailable = err {
-                    error!("Device error: {}", err);
-                } else {
-                    error!("Backend error: {}", err);
-                }
-                error!("Waiting before triggering restart");
-                thread::sleep(Duration::from_millis(1000));
-                debug!("Triggering restart");
-                dead_callback.store(true, Ordering::Relaxed);
-            })
-            .open_stream_or_fallback()
-            .ok()?;
-
-        let mixer = stream_handle.mixer();
-        let sink = rodio::Sink::connect_new(mixer);
+        let (stream_handle, sink) = Self::default_handle(dead_callback)?;
 
         Some(Player {
             stream_handle,
@@ -50,6 +30,24 @@ impl Player {
             dead,
             last_url: String::default(),
         })
+    }
+
+    pub fn enable_caching() {
+        // IMPROVE: Make the cache be set per reader creation instance
+        CACHE_INIT.call_once(|| {
+            // IMPROVE: Make the cache be set per reader creation instance
+            let temp_path = env::temp_dir().join("bandmix");
+            debug!("Storing http cache to {}", temp_path.to_string_lossy());
+
+            // IMPROVE: Make use of streaming variant of cache
+            let middle = Cache(HttpCache {
+                mode: CacheMode::Default,
+                manager: CACacheManager::new(temp_path, true),
+                options: HttpCacheOptions::default(),
+            });
+
+            Settings::add_default_middleware(middle);
+        });
     }
 
     fn default_handle(callback: Arc<AtomicBool>) -> Option<(OutputStream, Sink)> {
@@ -74,6 +72,7 @@ impl Player {
 
         let mixer = stream_handle.mixer();
         let sink: Sink = rodio::Sink::connect_new(mixer);
+        sink.pause();
 
         Some((stream_handle, sink))
     }
@@ -111,9 +110,13 @@ impl Player {
     // TODO: decouple start and decoding of stream
     pub async fn start(&mut self, url: &str) -> Option<()> {
         let url_string = url.to_string();
-        self.last_url = url_string.clone();
-        debug!("Reading: {}", url);
-        let reader = StreamDownload::new_http(
+
+        if self.last_url != url_string {
+            self.last_url = url_string.clone();
+            debug!("Reading: {}", url);
+        }
+
+        let reader = StreamDownload::new_http_with_middleware(
             url.parse().ok()?,
             TempStorageProvider::new(),
             Settings::default().on_progress(move |_client, stream_state, _| {
