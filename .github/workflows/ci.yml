@@ -4,7 +4,11 @@ on:
     branches:
       - main
     paths:
-      - src
+      - 'src'
+      - 'resource'
+      - 'build.rs'
+      - '**/Cargo.toml'
+      - '**/Cargo.lock'
   pull_request:
 jobs:
   test:
