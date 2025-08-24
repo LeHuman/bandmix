@@ -8,9 +8,6 @@ jobs:
   test:
     name: Test Suite
     runs-on: ubuntu-latest
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
     steps:
       - name: Install packages
         if: runner.os == 'Linux'
@@ -27,9 +24,6 @@ jobs:
   rustfmt:
     name: Rustfmt
     runs-on: ubuntu-latest
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -64,9 +58,6 @@ jobs:
   docs:
     name: Docs
     runs-on: ubuntu-latest
-    concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
-      cancel-in-progress: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
