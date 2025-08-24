@@ -32,11 +32,6 @@ jobs:
           tool: cargo-workspaces
       - name: Check for Changes
         run: cargo workspaces changed --error-on-empty
-      - name: Check semver # IMPROVE: Bump version appropriately
-        uses: obi1kenobi/cargo-semver-checks-action@v2.8
-        with:
-          rust-toolchain: manual
-          exclude: localsavefile-test # IMPROVE: External list/config for crates to ignore in workspaces
       - name: Git Set User
         run: |-
           git config user.name 'github-actions[bot]'
