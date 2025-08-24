@@ -36,8 +36,8 @@ impl Player {
         // IMPROVE: Make the cache be set per reader creation instance
         CACHE_INIT.call_once(|| {
             // IMPROVE: Make the cache be set per reader creation instance
-            let temp_path = env::temp_dir().join("bandmix");
-            debug!("Storing http cache to {}", temp_path.to_string_lossy());
+            let temp_path = env::temp_dir().join("bandmix").join("stream");
+            debug!("Storing stream cache to {}", temp_path.to_string_lossy());
 
             // IMPROVE: Make use of streaming variant of cache
             let middle = Cache(HttpCache {

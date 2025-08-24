@@ -299,6 +299,7 @@ dependencies = [
  "localsavefile",
  "once_cell",
  "reqwest",
+ "reqwest-middleware",
  "rodio",
  "savefile",
  "scraper",

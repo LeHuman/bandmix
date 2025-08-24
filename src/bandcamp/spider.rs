@@ -1,13 +1,20 @@
 // https://github.com/pombadev/sunny/blob/8643b3c030c3ddc310111dda9c607108317b6140/src/lib/spider.rs#L132
 
-use std::collections::BTreeMap;
-
-use anyhow::Result;
+use anyhow::{bail, Ok, Result};
 use html_escape::decode_html_entities;
+use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
+use once_cell::sync::Lazy;
+use reqwest::Client;
+use reqwest_middleware::ClientBuilder;
 use scraper::{Html, Selector};
+use std::{collections::BTreeMap, env};
+use tokio::runtime::Runtime;
 use tracing::{trace, warn};
 
 use super::models::{Album, Track};
+
+static TOKIO_RUNTIME: Lazy<Runtime> =
+    Lazy::new(|| Runtime::new().expect("Failed to create Tokio runtime"));
 
 /// Parse data from the node: `document.querySelector('script[data-tralbum]')`
 fn scrape_by_data_tralbum(dom: &Html) -> Option<Album> {
@@ -245,10 +252,33 @@ fn get_album(dom: &Html) -> Option<Album> {
 
 /// Get [`Html`] of a page.
 fn fetch_html(url: &str) -> Result<Html> {
-    let body = reqwest::blocking::get(url)?.bytes()?.to_vec();
-    let body = String::from_utf8(body)?;
+    let temp_path = env::temp_dir().join("bandmix").join("spider");
 
-    Ok(Html::parse_document(body.as_ref()))
+    let client = ClientBuilder::new(Client::new())
+        .with(Cache(HttpCache {
+            mode: CacheMode::Default,
+            manager: CACacheManager::new(temp_path, true),
+            options: HttpCacheOptions::default(),
+        }))
+        .build();
+
+    let result = TOKIO_RUNTIME.block_on(async move {
+        let resp = client.get(url).send().await.ok();
+
+        match resp {
+            Some(r) => Some(r.bytes().await.ok()?.to_vec()),
+            None => None,
+        }
+    });
+
+    match result {
+        Some(r) => {
+            let body = String::from_utf8(r)?;
+
+            Ok(Html::parse_document(body.as_ref()))
+        }
+        None => bail!("Failed to fetch html for {url}"),
+    }
 }
 
 pub fn fetch_album(url: &str) -> Option<Album> {

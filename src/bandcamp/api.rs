@@ -1,7 +1,15 @@
 #![allow(non_camel_case_types, unreachable_patterns)]
+use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
+use once_cell::sync::Lazy;
 use reqwest;
-use std::collections::HashMap;
+use reqwest::Client;
+use reqwest_middleware::ClientBuilder;
+use std::{collections::HashMap, env};
+use tokio::runtime::Runtime;
 use url::Url;
+
+static TOKIO_RUNTIME: Lazy<Runtime> =
+    Lazy::new(|| Runtime::new().expect("Failed to create Tokio runtime"));
 
 pub struct Api<'a> {
     base_url: &'a str,
@@ -152,10 +160,40 @@ impl Api<'_> {
     }
 
     pub fn request(url: Url) -> Result<String, Box<dyn std::error::Error>> {
-        let response = reqwest::blocking::get(url)?;
+        // IMPROVE: Consolidate caching clients
+        let temp_path = env::temp_dir().join("bandmix").join("api");
 
-        if response.status().is_success() {
-            let body = response.bytes()?.to_vec();
+        let client = ClientBuilder::new(Client::new())
+            .with(Cache(HttpCache {
+                mode: CacheMode::Default,
+                manager: CACacheManager::new(temp_path, true),
+                options: HttpCacheOptions::default(),
+            }))
+            .build();
+
+        let url_str = url.to_string();
+
+        let result = TOKIO_RUNTIME.block_on(async move {
+            let r = client.get(url).send().await.ok()?;
+
+            if r.status().is_success() {
+                Some((r.status(), Some(r.bytes().await.ok()?.to_vec())))
+            } else {
+                Some((r.status(), None))
+            }
+        });
+
+        let Some((status, data)) = result else {
+            return Err(format!("Failed to get response on request for {url_str}").into());
+        };
+
+        if status.is_success() {
+            let Some(body) = data else {
+                return Err(
+                    format!("Failed to get data after successful request for {url_str}").into(),
+                );
+            };
+
             let json = String::from_utf8(body)?;
 
             if !gjson::valid(&json) {
@@ -164,10 +202,7 @@ impl Api<'_> {
 
             Ok(json)
         } else {
-            Err(format!(
-                "Failed to get a successful response: {}",
-                response.status()
-            ))?
+            Err(format!("Failed to get a successful response: {}", status))?
         }
     }
 }
