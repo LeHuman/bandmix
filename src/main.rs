@@ -1,4 +1,8 @@
-use std::sync::{atomic::AtomicBool, Arc, Mutex};
+use std::{
+    sync::{atomic::AtomicBool, Arc, Mutex},
+    thread,
+    time::Duration,
+};
 
 use bandmix::{
     controls::get_media_controls,
@@ -6,13 +10,13 @@ use bandmix::{
     stream::Player,
 };
 use souvlaki::{MediaControlEvent, MediaMetadata};
-use tracing::Level;
+use tracing::{debug, error, warn, Level};
 use tracing_subscriber::FmtSubscriber;
 
 mod bandcamp;
 mod bandmix;
 
-async fn new_track(track: &Entry, player: &Player) {
+async fn new_track(track: &Entry, player: &mut Player) {
     println!("NOW PLAYING: {}", track);
     player.start(&track.url).await;
 }
@@ -48,23 +52,23 @@ async fn main() {
     let _ = load_icon();
 
     let subscriber = FmtSubscriber::builder()
-        .with_max_level(Level::INFO)
+        .with_max_level(Level::DEBUG)
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("Setting default subscriber failed");
 
     let mut controls = get_media_controls();
-    let player = Player::new().expect("Failed to get Player");
+    let mut player = Player::new().expect("Failed to get Player");
     let update_trigger: Arc<AtomicBool> = Arc::new(AtomicBool::new(true));
     let update_event: Arc<Mutex<MediaControlEvent>> = Arc::new(Mutex::new(MediaControlEvent::Play));
     let update_trigger_clone: Arc<AtomicBool> = Arc::clone(&update_trigger);
     let update_event_clone: Arc<Mutex<MediaControlEvent>> = Arc::clone(&update_event);
-    let mut initial = false;
+    let mut has_started = false;
     player.pause();
 
     discovery::start(None, None, None, None);
     controls
         .attach(move |event: MediaControlEvent| {
-            println!("Event received: {:?}", event);
+            debug!("Event received: {:?}", event);
             let mut enum_guard = update_event_clone.lock().unwrap();
             *enum_guard = event; // TODO: should I queue up commands?
             update_trigger_clone.store(true, std::sync::atomic::Ordering::Relaxed);
@@ -75,23 +79,37 @@ async fn main() {
 
     loop {
         // TODO: separate user and internal controls
-        if initial && player.empty() {
+
+        if has_started && player.has_error() {
+            // IMPROVE: non-blocking restart
+            error!("Attempting to continually restart audio");
+            while player.rebuild().await.is_none() {
+                thread::sleep(Duration::from_millis(100));
+            }
+            debug!("Recovered from error");
+        }
+
+        if has_started && player.empty() {
             if discovery::mark_current_track().is_none() {
-                eprintln!("Failed to mark current track");
+                warn!("Failed to mark current track");
             }
             let mut event = update_event.lock().unwrap();
             *event = MediaControlEvent::Next;
             update_trigger.store(true, std::sync::atomic::Ordering::Relaxed);
         }
+
         if !update_trigger.load(std::sync::atomic::Ordering::Relaxed) {
             continue;
         }
+
         let event = match update_event.try_lock() {
             Ok(event) => event.to_owned(),
             Err(_) => continue,
         };
+
         let mut track = Entry::default();
-        initial = true;
+        has_started = true;
+
         match event {
             MediaControlEvent::Play => {
                 println!("[PLAY]");
@@ -103,7 +121,7 @@ async fn main() {
                     player.pause();
                 } else {
                     if player.empty() {
-                        new_track(&track, &player).await;
+                        new_track(&track, &mut player).await;
                     }
                     player.play();
                 }
@@ -111,7 +129,7 @@ async fn main() {
                 #[cfg(not(target_os = "windows"))]
                 {
                     if player.empty() {
-                        new_track(&track, &player).await;
+                        new_track(&track, &mut player).await;
                     }
                     player.play();
                 }
@@ -134,12 +152,12 @@ async fn main() {
                     eprintln!("Failed to mark last track");
                 }
                 track = discovery::next().unwrap_or_default();
-                new_track(&track, &player).await;
+                new_track(&track, &mut player).await;
             }
             MediaControlEvent::Previous => {
                 println!("[PREVIOUS]");
                 track = discovery::previous().unwrap_or_default();
-                new_track(&track, &player).await;
+                new_track(&track, &mut player).await;
             }
             MediaControlEvent::Stop => {
                 println!("[STOP]");
@@ -171,6 +189,7 @@ async fn main() {
             });
             last_track = track;
         }
+
         update_trigger.store(false, std::sync::atomic::Ordering::Relaxed);
     }
 }

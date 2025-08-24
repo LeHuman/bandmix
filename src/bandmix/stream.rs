@@ -1,57 +1,118 @@
-// use std::time::Duration;
-
-use rodio::{OutputStream, OutputStreamHandle, Sink};
-// use stream_download::http::HttpStream;
+use rodio::cpal::traits::HostTrait;
+use rodio::{cpal, OutputStream, Sink};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::thread;
+use std::time::Duration;
 use stream_download::storage::temp::TempStorageProvider;
 use stream_download::{Settings, StreamDownload};
-use tracing::debug;
+use tracing::{debug, error, info, warn};
 
 pub struct Player {
-    // storage: TempStorageProvider,
-    // settings: Settings<HttpStream<::reqwest::Client>>,
-    _output_stream: OutputStream,
-    _output_stream_handle: OutputStreamHandle,
+    stream_handle: OutputStream,
     pub sink: Sink,
+    dead: Arc<AtomicBool>,
+    last_url: String,
 }
 
 impl Player {
     pub fn new() -> Option<Player> {
-        let (_stream, handle) = rodio::OutputStream::try_default().ok()?;
-        let sink = rodio::Sink::try_new(&handle).ok()?;
+        let default_device = cpal::default_host()
+            .default_output_device()
+            .ok_or("No default audio output device is found.")
+            .ok()?;
+
+        let dead = Arc::new(AtomicBool::new(false));
+        let dead_callback = dead.clone();
+
+        let stream_handle = rodio::OutputStreamBuilder::from_device(default_device)
+            .ok()?
+            .with_error_callback(move |err| {
+                if let cpal::StreamError::DeviceNotAvailable = err {
+                    error!("Device error: {}", err);
+                } else {
+                    error!("Backend error: {}", err);
+                }
+                error!("Waiting before triggering restart");
+                thread::sleep(Duration::from_millis(1000));
+                debug!("Triggering restart");
+                dead_callback.store(true, Ordering::Relaxed);
+            })
+            .open_stream_or_fallback()
+            .ok()?;
+
+        let mixer = stream_handle.mixer();
+        let sink = rodio::Sink::connect_new(&mixer);
 
         Some(Player {
-            // storage: TempStorageProvider::new(),
-            // settings: Settings::default(),
-            _output_stream: _stream,
-            _output_stream_handle: handle,
-            // decode_buffer: ArrayQueue::new(16),
+            stream_handle,
             sink,
+            dead,
+            last_url: String::default(),
         })
     }
 
-    // TODO: decouple start and decoding of stream
-    // async fn get_decoded_url(
-    //     url: String,
-    // ) -> Option<rodio::Decoder<StreamDownload<TempStorageProvider>>> {
-    //     let reader = StreamDownload::new_http(
-    //         url.parse().ok()?,
-    //         TempStorageProvider::new(),
-    //         Settings::default(),
-    //     )
-    //     .await
-    //     .ok()?;
-    //     let decode = rodio::Decoder::new(reader).ok()?;
-    //     Some(decode)
-    // }
+    fn default_handle(callback: Arc<AtomicBool>) -> Option<(OutputStream, Sink)> {
+        let default_device = cpal::default_host()
+            .default_output_device()
+            .ok_or("No default audio output device is found.")
+            .ok()?;
 
-    pub async fn start(&self, url: &str) -> Option<()> {
-        // let runtime = tokio::runtime::Runtime::new().unwrap();
-        // let decode = runtime
-        //     .block_on(Self::get_decoded_url(url.to_owned()))
-        //     .unwrap();
-        // self.sink.append(result);
+        let stream_handle = rodio::OutputStreamBuilder::from_device(default_device)
+            .ok()?
+            .with_error_callback(move |err| {
+                if let cpal::StreamError::DeviceNotAvailable = err {
+                    error!("Device error: {}", err);
+                } else {
+                    error!("Backend error: {}", err);
+                }
+                debug!("Triggering restart");
+                callback.store(true, Ordering::SeqCst);
+            })
+            .open_stream_or_fallback()
+            .ok()?;
+
+        let mixer = stream_handle.mixer();
+        let sink: Sink = rodio::Sink::connect_new(&mixer);
+
+        Some((stream_handle, sink))
+    }
+
+    pub async fn rebuild(&mut self) -> Option<()> {
+        self.dead.store(false, Ordering::SeqCst);
+        let dead_callback = self.dead.clone();
+
+        let (stream_handle, sink) = Self::default_handle(dead_callback)?;
+
+        let playing = !self.is_paused();
+        let position = self.sink.get_pos();
+
+        self.stream_handle = stream_handle;
+        self.sink = sink;
+
+        if !self.last_url.is_empty() {
+            info!("Restarting audio");
+            self.start(&self.last_url.clone()).await?;
+        }
+
+        if playing {
+            self.play();
+        }
+
+        if let Err(e) = self.sink.try_seek(position) {
+            warn!("Failed to seek on restart: {}", e);
+        } else {
+            debug!("Seeked back to {}", position.as_secs_f64());
+        }
+
+        Some(())
+    }
+
+    // TODO: decouple start and decoding of stream
+    pub async fn start(&mut self, url: &str) -> Option<()> {
         let url_string = url.to_string();
-        // println!("Reading: {}", url);
+        self.last_url = url_string.clone();
+        debug!("Reading: {}", url);
         let reader = StreamDownload::new_http(
             url.parse().ok()?,
             TempStorageProvider::new(),
@@ -63,34 +124,39 @@ impl Player {
         )
         .await
         .ok()?;
-        // println!("Decoding: {}", url);
+
+        debug!("Decoding: {}", url);
         let decode = rodio::Decoder::new(reader).ok()?;
-        // self.sink.pause();
-        let _playing = !self.sink.is_paused();
+
         let empty = self.sink.empty();
         self.sink.append(decode);
         if !empty {
             self.sink.skip_one();
         }
         debug!("New Source Playing: {}", url);
-        // self.play();
         Some(())
     }
+
+    pub fn has_error(&self) -> bool {
+        return self.dead.load(Ordering::Relaxed);
+    }
+
     pub fn play(&self) {
         self.sink.play()
     }
+
     pub fn pause(&self) {
         self.sink.pause()
     }
+
     pub fn stop(&self) {
         self.sink.stop()
     }
+
     pub fn is_paused(&self) -> bool {
         self.sink.is_paused()
     }
-    // pub fn block(&self) {
-    //     self.sink.sleep_until_end();
-    // }
+
     pub fn empty(&self) -> bool {
         self.sink.empty()
     }
