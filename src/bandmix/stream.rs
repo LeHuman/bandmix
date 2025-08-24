@@ -140,7 +140,7 @@ impl Player {
 
     // TODO: decouple start and decoding of stream
     pub async fn start_url(&mut self, url: &Url, cached_seek: bool) -> anyhow::Result<()> {
-        let url_string = Self::url_remove_query(&url);
+        let url_string = Self::url_remove_query(url);
         self.last_url = url.clone();
 
         debug!("Reading: {}", url);
