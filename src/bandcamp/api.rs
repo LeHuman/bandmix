@@ -1,11 +1,15 @@
 #![allow(non_camel_case_types, unreachable_patterns)]
-use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
+use http_cache_reqwest::{
+    CACacheManager, Cache, CacheMode, CacheOptions, HttpCache, HttpCacheOptions,
+};
 use once_cell::sync::Lazy;
 use reqwest;
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
+use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use std::{collections::HashMap, env};
 use tokio::runtime::Runtime;
+use tracing::error;
 use url::Url;
 
 static TOKIO_RUNTIME: Lazy<Runtime> =
@@ -163,18 +167,31 @@ impl Api<'_> {
         // IMPROVE: Consolidate caching clients
         let temp_path = env::temp_dir().join("bandmix").join("api");
 
+        let retry_policy = ExponentialBackoff::builder().build_with_max_retries(10);
+
+        let mut options = HttpCacheOptions::default();
+        let mut cache_options = CacheOptions::default();
+        cache_options.ignore_cargo_cult = true;
+        options.cache_options = Some(cache_options);
+
         let client = ClientBuilder::new(Client::new())
+            .with(RetryTransientMiddleware::new_with_policy(retry_policy))
             .with(Cache(HttpCache {
                 mode: CacheMode::Default,
                 manager: CACacheManager::new(temp_path, true),
-                options: HttpCacheOptions::default(),
+                options,
             }))
             .build();
 
         let url_str = url.to_string();
 
         let result = TOKIO_RUNTIME.block_on(async move {
-            let r = client.get(url).send().await.ok()?;
+            let response = client.get(url).send().await;
+            if let Err(err) = response.as_ref() {
+                error!("{}", err);
+            }
+
+            let r = response.ok()?;
 
             if r.status().is_success() {
                 Some((r.status(), Some(r.bytes().await.ok()?.to_vec())))

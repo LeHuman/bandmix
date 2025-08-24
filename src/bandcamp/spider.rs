@@ -6,10 +6,11 @@ use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheO
 use once_cell::sync::Lazy;
 use reqwest::Client;
 use reqwest_middleware::ClientBuilder;
+use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use scraper::{Html, Selector};
 use std::{collections::BTreeMap, env};
 use tokio::runtime::Runtime;
-use tracing::{trace, warn};
+use tracing::{error, trace, warn};
 
 use super::models::{Album, Track};
 
@@ -254,7 +255,10 @@ fn get_album(dom: &Html) -> Option<Album> {
 fn fetch_html(url: &str) -> Result<Html> {
     let temp_path = env::temp_dir().join("bandmix").join("spider");
 
+    let retry_policy = ExponentialBackoff::builder().build_with_max_retries(10);
+
     let client = ClientBuilder::new(Client::new())
+        .with(RetryTransientMiddleware::new_with_policy(retry_policy))
         .with(Cache(HttpCache {
             mode: CacheMode::Default,
             manager: CACacheManager::new(temp_path, true),
@@ -262,22 +266,36 @@ fn fetch_html(url: &str) -> Result<Html> {
         }))
         .build();
 
-    let result = TOKIO_RUNTIME.block_on(async move {
-        let resp = client.get(url).send().await.ok();
+    let url_str = url.to_string();
 
-        match resp {
-            Some(r) => Some(r.bytes().await.ok()?.to_vec()),
-            None => None,
+    let result = TOKIO_RUNTIME.block_on(async move {
+        let response = client.get(url).send().await;
+        if let Err(err) = response.as_ref() {
+            error!("{}", err);
+        }
+
+        let r = response.ok()?;
+
+        if r.status().is_success() {
+            Some((r.status(), Some(r.bytes().await.ok()?.to_vec())))
+        } else {
+            Some((r.status(), None))
         }
     });
 
-    match result {
-        Some(r) => {
-            let body = String::from_utf8(r)?;
+    let Some((status, data)) = result else {
+        bail!("Failed to get response on request for {url_str}");
+    };
 
-            Ok(Html::parse_document(body.as_ref()))
-        }
-        None => bail!("Failed to fetch html for {url}"),
+    if status.is_success() {
+        let Some(body) = data else {
+            bail!("Failed to get data after successful request for {url_str}");
+        };
+        let body = String::from_utf8(body)?;
+
+        Ok(Html::parse_document(body.as_ref()))
+    } else {
+        bail!("Failed to fetch html for {url_str}")
     }
 }
 
