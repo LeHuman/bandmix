@@ -9,7 +9,7 @@ pub struct Api<'a> {
     client: Lazy<HTTPClient>,
 }
 
-pub const DISCOVER_API: Api = Api {
+pub static DISCOVER_API: Api = Api {
     base_url: "https://bandcamp.com/api/discover/3",
     client: Lazy::new(|| HTTPClient::new("bandmix", "api", u32::MAX)),
 };
