@@ -91,7 +91,7 @@ impl Function {
         if self.parameters.contains_key(&key) {
             self.parameters.insert(key.to_string(), val.to_string());
         } else {
-            eprintln!("Key not found in Function {}", key);
+            eprintln!("Key not found in Function {key}");
         }
     }
 

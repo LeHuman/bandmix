@@ -17,7 +17,7 @@ mod bandcamp;
 mod bandmix;
 
 async fn new_track(track: &Entry, player: &mut Player) {
-    println!("NOW PLAYING: {}", track);
+    println!("NOW PLAYING: {track}");
     player.start(&track.url).await;
 }
 

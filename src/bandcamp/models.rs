@@ -56,7 +56,7 @@ impl std::fmt::Display for Album {
                     extra = "*"
                 }
             }
-            result += &format!("\n{} {}", extra, track);
+            result += &format!("\n{extra} {track}");
         }
         f.write_str(&result)
     }

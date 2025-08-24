@@ -124,7 +124,7 @@ fn discovery_load_album_urls_task(function: &Function) -> Option<()> {
         let subdomain = value.get("subdomain").to_string();
         let slug = value.get("slug").to_string();
         if ALBUM_URL_QUEUE
-            .push(format!("https://{}.bandcamp.com/album/{}", subdomain, slug))
+            .push(format!("https://{subdomain}.bandcamp.com/album/{slug}"))
             .is_err()
         {
             warn!("Error pushing to Album URL queue");

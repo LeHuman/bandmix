@@ -263,7 +263,7 @@ fn test_get_album() {
     let html = fetch_html("https://loscampesinos.bandcamp.com/album/all-hell")
         .expect("Failed to get html");
     let _album = get_album(&html).expect("Failed to get Album");
-    println!("{}", _album);
+    println!("{_album}");
     _result = true;
     assert!(_result, "Failed to fetch album")
 }

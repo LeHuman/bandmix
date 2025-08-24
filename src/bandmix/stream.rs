@@ -42,7 +42,7 @@ impl Player {
             .ok()?;
 
         let mixer = stream_handle.mixer();
-        let sink = rodio::Sink::connect_new(&mixer);
+        let sink = rodio::Sink::connect_new(mixer);
 
         Some(Player {
             stream_handle,
@@ -73,7 +73,7 @@ impl Player {
             .ok()?;
 
         let mixer = stream_handle.mixer();
-        let sink: Sink = rodio::Sink::connect_new(&mixer);
+        let sink: Sink = rodio::Sink::connect_new(mixer);
 
         Some((stream_handle, sink))
     }
@@ -138,7 +138,7 @@ impl Player {
     }
 
     pub fn has_error(&self) -> bool {
-        return self.dead.load(Ordering::Relaxed);
+        self.dead.load(Ordering::Relaxed)
     }
 
     pub fn play(&self) {
