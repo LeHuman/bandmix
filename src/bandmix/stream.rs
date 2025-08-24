@@ -52,7 +52,9 @@ impl Player {
             });
 
             Settings::add_default_middleware(middle);
-            Settings::add_default_middleware(RetryTransientMiddleware::new_with_policy(retry_policy));
+            Settings::add_default_middleware(RetryTransientMiddleware::new_with_policy(
+                retry_policy,
+            ));
         });
     }
 

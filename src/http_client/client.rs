@@ -32,9 +32,7 @@ impl HTTPClient {
             .with(RetryTransientMiddleware::new_with_policy(retry_policy))
             .build();
 
-        HTTPClient {
-            client,
-        }
+        HTTPClient { client }
     }
 
     pub fn fetch(&self, url: Url) -> anyhow::Result<Vec<u8>> {
@@ -69,5 +67,4 @@ impl HTTPClient {
             bail!("Failed to fetch html for {url_str}")
         }
     }
-
 }
