@@ -1975,9 +1975,9 @@ checksum = "241eaef5fd12c88705a01fc1066c48c4b36e0dd4377dcdc7ec3942cea7a69956"
 
 [[package]]
 name = "localsavefile"
-version = "0.2.14"
+version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "08803875a1b0f76b43a7fae4ddb49f47e578b4b50348aff0e2cb7da5fb9581e1"
+checksum = "9a4163c0459862c4aebb25f62cec1d9315ad3ef821a85dc36283482c00f2f304"
 dependencies = [
  "directories",
  "localsavefile-derive",
@@ -1988,9 +1988,9 @@ dependencies = [
 
 [[package]]
 name = "localsavefile-derive"
-version = "0.2.14"
+version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4cdc52acf70e715f1f0feefd77db2acdafb58abf2af1312c999d4755cf56d3a"
+checksum = "354d2e70e477afd547bde55648408c85e03f579085c470c1d9b340fab4ab810a"
 dependencies = [
  "darling",
  "proc-macro2",
