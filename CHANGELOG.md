@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.7] - 2025-09-07
+
+### ⚙️ Miscellaneous Tasks
+
+- :bookmark: Release v0.1.7
+
+### Build
+
+- *(deps)* Bump localsavefile from 0.2.14 to 0.2.15
+
 ## [0.1.6] - 2025-08-24
 
 ### 🚀 Features
@@ -43,6 +53,8 @@ All notable changes to this project will be documented in this file.
 - :construction_worker: Only run CI on src changes
 - :construction_worker: Additional paths
 - :bookmark: Release v0.1.6
+- :green_heart: Use correct tag
+- :memo: Update CHANGELOG.md config
 
 ### Build
 
