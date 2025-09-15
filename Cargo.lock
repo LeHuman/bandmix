@@ -301,7 +301,7 @@ dependencies = [
  "reqwest-middleware",
  "reqwest-retry",
  "rodio",
- "savefile",
+ "savefile 0.20.0",
  "scraper",
  "sharded-slab",
  "souvlaki",
@@ -1982,7 +1982,7 @@ dependencies = [
  "directories",
  "localsavefile-derive",
  "sanitize-filename",
- "savefile",
+ "savefile 0.19.0",
  "tracing",
 ]
 
@@ -3172,8 +3172,29 @@ dependencies = [
  "memoffset 0.9.1",
  "parking_lot 0.12.4",
  "rustc_version",
- "savefile-derive",
+ "savefile-derive 0.19.0",
  "serde",
+ "smallvec",
+]
+
+[[package]]
+name = "savefile"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e81bdf87968be1a7c1f49bbf744f9b905f4d4ec52f9e4d301f4a5a0c7bd761f"
+dependencies = [
+ "arrayvec",
+ "bit-set 0.5.3",
+ "bit-set 0.8.0",
+ "bit-vec 0.6.3",
+ "bit-vec 0.8.0",
+ "byteorder",
+ "chrono",
+ "indexmap",
+ "memoffset 0.9.1",
+ "parking_lot 0.12.4",
+ "rustc_version",
+ "savefile-derive 0.20.0",
  "smallvec",
 ]
 
@@ -3182,6 +3203,18 @@ name = "savefile-derive"
 version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e0376f220a3427a88e084a1acd072f3d16a0246abd37114aa801d99ffb9bc1f"
+dependencies = [
+ "proc-macro-error2",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.106",
+]
+
+[[package]]
+name = "savefile-derive"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a57231d197d1724977e893bb8291bdcb86928d51ee5888a6e583bd09c26489b7"
 dependencies = [
  "proc-macro-error2",
  "proc-macro2",
