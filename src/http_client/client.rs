@@ -4,6 +4,7 @@ use anyhow::bail;
 use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache, HttpCacheOptions};
 use once_cell::sync::Lazy;
 use reqwest::Client;
+use reqwest_leaky_bucket::leaky_bucket::RateLimiter;
 use reqwest_middleware::{ClientBuilder, ClientWithMiddleware};
 use reqwest_retry::{policies::ExponentialBackoff, RetryTransientMiddleware};
 use tokio::runtime::Runtime;
@@ -23,6 +24,8 @@ impl HTTPClient {
 
         let retry_policy = ExponentialBackoff::builder().build_with_max_retries(max_retries);
 
+        let limiter = RateLimiter::builder().initial(0).refill(2).build();
+
         let client = ClientBuilder::new(Client::new())
             .with(Cache(HttpCache {
                 mode: CacheMode::Default,
@@ -30,6 +33,7 @@ impl HTTPClient {
                 options: HttpCacheOptions::default(),
             }))
             .with(RetryTransientMiddleware::new_with_policy(retry_policy))
+            .with(reqwest_leaky_bucket::rate_limit_all(limiter))
             .build();
 
         HTTPClient { client }

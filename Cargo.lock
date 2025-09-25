@@ -298,6 +298,7 @@ dependencies = [
  "localsavefile",
  "once_cell",
  "reqwest",
+ "reqwest-leaky-bucket",
  "reqwest-middleware",
  "reqwest-retry",
  "rodio",
@@ -1925,6 +1926,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
+name = "leaky-bucket"
+version = "1.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a396bb213c2d09ed6c5495fd082c991b6ab39c9daf4fff59e6727f85c73e4c5"
+dependencies = [
+ "parking_lot 0.12.4",
+ "pin-project-lite",
+ "tokio",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.175"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2942,6 +2954,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "reqwest-leaky-bucket"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "99ea23b517779144bef5fba5a5401bbdc2aac6244c529e8b418f8ce1b6d5fdf0"
+dependencies = [
+ "leaky-bucket",
+ "reqwest-ratelimit",
+]
+
+[[package]]
 name = "reqwest-middleware"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2954,6 +2976,18 @@ dependencies = [
  "serde",
  "thiserror 1.0.69",
  "tower-service",
+]
+
+[[package]]
+name = "reqwest-ratelimit"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b8fff0d8036f23dcad6c27605ca3baa8ae3867438d0a8b34072f40f6c8bf628"
+dependencies = [
+ "async-trait",
+ "http",
+ "reqwest",
+ "reqwest-middleware",
 ]
 
 [[package]]
