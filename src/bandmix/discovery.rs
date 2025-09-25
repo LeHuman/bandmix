@@ -22,8 +22,9 @@ use tracing::{debug, error, info, trace, warn};
 use crate::bandcamp::{
     self,
     api::{DiscoveryType, Format, Function, Genre, RecommendedType},
-    models::{Album, AlbumID, Track, TrackID},
 };
+
+use crate::model::music::{Album, AlbumID, Track, TrackID};
 
 type AlbumListens = BTreeSet<TrackID>;
 

@@ -1,8 +1,10 @@
-#![allow(non_camel_case_types, unreachable_patterns)]
-use super::super::http_client::HTTPClient;
+#![allow(unreachable_patterns)]
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
+use tracing::error;
 use url::Url;
+
+use crate::http_client::HTTPClient;
 
 pub struct Api<'a> {
     base_url: &'a str,
@@ -20,6 +22,8 @@ pub struct Function {
     parameters: HashMap<String, String>,
 }
 
+// TODO: Localization here
+#[allow(non_camel_case_types)]
 #[derive(Debug, PartialEq, Default, strum::EnumString, strum::Display)]
 pub enum Genre {
     #[default]
@@ -29,7 +33,7 @@ pub enum Genre {
     metal,
     alternative,
     #[strum(
-        to_string = "hip-hop-rap",
+        to_string = "hip-hop/rap",
         serialize = "hip-hop-rap",
         serialize = "hip-hop/rap"
     )]
@@ -44,7 +48,7 @@ pub enum Genre {
     jazz,
     acoustic,
     funk,
-    #[strum(to_string = "r-b-soul", serialize = "r-b-soul", serialize = "r&b/soul")]
+    #[strum(to_string = "r&b/soul", serialize = "r-b-soul", serialize = "r&b/soul")]
     r_b_soul,
     devotional,
     classical,
@@ -52,7 +56,7 @@ pub enum Genre {
     podcasts,
     country,
     #[strum(
-        to_string = "spoken-word",
+        to_string = "spoken word",
         serialize = "spoken-word",
         serialize = "spoken word"
     )]
@@ -64,6 +68,16 @@ pub enum Genre {
     latin,
 }
 
+pub fn genre_internal_str(genre: &Genre) -> String {
+    match genre {
+        Genre::hip_hop_rap => String::from("hip-hop-rap"),
+        Genre::r_b_soul => String::from("r-b-soul"),
+        Genre::spoken_word => String::from("spoken-word"),
+        any => any.to_string(),
+    }
+}
+
+#[allow(non_camel_case_types)]
 #[derive(Debug, PartialEq, Default, strum::EnumString, strum::Display)]
 pub enum DiscoveryType {
     #[default]
@@ -72,6 +86,7 @@ pub enum DiscoveryType {
     rec,
 }
 
+#[allow(non_camel_case_types)]
 #[derive(Debug, PartialEq, Default, strum::EnumString, strum::Display)]
 pub enum RecommendedType {
     #[default]
@@ -79,6 +94,7 @@ pub enum RecommendedType {
     latest,
 }
 
+#[allow(non_camel_case_types)]
 #[derive(Debug, PartialEq, Default, strum::EnumString, strum::Display)]
 pub enum Format {
     #[default]
@@ -94,7 +110,7 @@ impl Function {
         if self.parameters.contains_key(&key) {
             self.parameters.insert(key.to_string(), val.to_string());
         } else {
-            eprintln!("Key not found in Function {key}");
+            error!("Key not found in Function {key}");
         }
     }
 
@@ -113,7 +129,10 @@ impl Function {
         let mut func = Function {
             name: String::from("get_web"),
             parameters: HashMap::from([
-                (String::from("g"), genre.unwrap_or_default().to_string()),
+                (
+                    String::from("g"),
+                    genre_internal_str(&genre.unwrap_or_default()),
+                ),
                 (String::from("s"), discovery_type.to_string()),
                 (String::from("p"), page.to_string()),
                 (String::from("gn"), 0.to_string()), // TODO: What is 'gn' for get_web for?

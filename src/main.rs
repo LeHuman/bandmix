@@ -16,6 +16,8 @@ use tracing_subscriber::FmtSubscriber;
 mod bandcamp;
 mod bandmix;
 mod http_client;
+mod model;
+mod types;
 
 async fn new_track(track: &Entry, player: &mut Player) {
     println!("NOW PLAYING: {track}");

@@ -8,8 +8,8 @@ use std::collections::BTreeMap;
 use tracing::{trace, warn};
 use url::Url;
 
-use super::super::http_client::HTTPClient;
-use super::models::{Album, Track};
+use crate::http_client::HTTPClient;
+use crate::model::music::{Album, Track};
 
 static CLIENT: Lazy<HTTPClient> = Lazy::new(|| HTTPClient::new("bandmix", "spider", u32::MAX));
 
@@ -61,6 +61,8 @@ fn scrape_by_data_tralbum(dom: &Html) -> Option<Album> {
                             url: item.get("file.mp3-128").to_string(),
                             // lyrics: None,
                             album_id: album.id,
+                            // TODO: track length
+                            length: None,
                         },
                     )
                 })
@@ -178,6 +180,8 @@ fn scrape_by_application_ld_json(dom: &Html) -> Option<Album> {
                 url,
                 // lyrics: None,
                 album_id: album.id,
+                // TODO: track length
+                length: None,
             },
         )])
     } else {
@@ -229,6 +233,8 @@ fn scrape_by_application_ld_json(dom: &Html) -> Option<Album> {
                     url: decode_html_entities(&url).to_string(),
                     // lyrics: Some(track.get("item.recordingOf.lyrics.text").to_string()),
                     album_id: album.id,
+                    // TODO: track length
+                    length: None,
                 },
             );
         }
