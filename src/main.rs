@@ -18,6 +18,7 @@ mod bandmix;
 mod http_client;
 mod model;
 mod types;
+mod localization;
 
 async fn new_track(track: &Entry, player: &mut Player) {
     println!("NOW PLAYING: {track}");
@@ -53,6 +54,9 @@ fn load_icon() -> windows::core::Result<()> {
 
 #[tokio::main]
 async fn main() {
+
+    localization::test();
+
     #[cfg(target_os = "windows")]
     let _ = load_icon();
 
