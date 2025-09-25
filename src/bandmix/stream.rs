@@ -189,16 +189,22 @@ impl Player {
     }
 
     fn save_cache(&mut self) {
+        // TODO: localsavefile "lock" strategy for saving to prevent data loss
         if self.cache.save().is_err() {
             warn!("Failed to save player cache");
         }
     }
 
-    pub fn save_position(&mut self) {
+    pub fn save_position(&mut self) -> bool {
         if self.seek_back && !self.is_paused() {
-            self.cache.position = self.sink.get_pos();
-            self.save_cache();
+            let pos = self.sink.get_pos();
+            if self.cache.position != pos {
+                self.cache.position = pos;
+                self.save_cache();
+                return true;
+            }
         }
+        false
     }
 
     pub fn has_error(&self) -> bool {

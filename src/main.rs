@@ -104,9 +104,9 @@ async fn main() {
             debug!("Recovered from error");
         } else if has_started && (time::Instant::now() > (last + SAVE_INTERVAL)) {
             last = time::Instant::now();
-            // TODO: localsavefile "lock" strategy for saving to prevent data loss
-            player.save_position();
-            trace!("Saved position");
+            if player.save_position() {
+                trace!("Saved position");
+            }
         }
 
         if has_started && player.empty() {
