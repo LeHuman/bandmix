@@ -2084,9 +2084,9 @@ dependencies = [
 
 [[package]]
 name = "mediatype"
-version = "0.20.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f490ea2ae935dd8ac89c472d4df28c7f6b87cc20767e1b21fd5ed6a16e7f61e4"
+checksum = "120fa187be19d9962f0926633453784691731018a2bf936ddb4e29101b79c4a7"
 
 [[package]]
 name = "memchr"
@@ -3499,9 +3499,9 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "stream-download"
-version = "0.22.7"
+version = "0.22.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df1661ebf497d15294e5b3ffa5635c5c63e4a2c67dfa8543dd65edaed302c0c9"
+checksum = "5a18f1016f949ee9ed8a311907e8b30f533fa188baefe3d2aefe9cb22df4c9f6"
 dependencies = [
  "bytes",
  "educe",
