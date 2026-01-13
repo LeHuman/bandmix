@@ -267,9 +267,9 @@ dependencies = [
  "http-cache-reqwest",
  "localsavefile",
  "once_cell",
- "reqwest",
+ "reqwest 0.12.28",
  "reqwest-leaky-bucket",
- "reqwest-middleware",
+ "reqwest-middleware 0.4.2",
  "reqwest-retry",
  "rodio",
  "savefile",
@@ -1519,8 +1519,8 @@ dependencies = [
  "http",
  "http-cache",
  "http-cache-semantics",
- "reqwest",
- "reqwest-middleware",
+ "reqwest 0.12.28",
+ "reqwest-middleware 0.4.2",
  "serde",
  "url",
 ]
@@ -2889,10 +2889,39 @@ dependencies = [
 ]
 
 [[package]]
-name = "reqwest-leaky-bucket"
-version = "0.4.0"
+name = "reqwest"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99ea23b517779144bef5fba5a5401bbdc2aac6244c529e8b418f8ce1b6d5fdf0"
+checksum = "04e9018c9d814e5f30cc16a0f03271aeab3571e609612d9fe78c1aa8d11c2f62"
+dependencies = [
+ "base64 0.22.1",
+ "bytes",
+ "futures-core",
+ "http",
+ "http-body",
+ "http-body-util",
+ "hyper",
+ "hyper-util",
+ "js-sys",
+ "log",
+ "percent-encoding",
+ "pin-project-lite",
+ "sync_wrapper",
+ "tokio",
+ "tower",
+ "tower-http",
+ "tower-service",
+ "url",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "reqwest-leaky-bucket"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b6bf0cbd135d86ab7e9e0b71b946890d42ae6cb4e7f7e2728ae13f6ffdad6f6"
 dependencies = [
  "leaky-bucket",
  "reqwest-ratelimit",
@@ -2907,22 +2936,36 @@ dependencies = [
  "anyhow",
  "async-trait",
  "http",
- "reqwest",
+ "reqwest 0.12.28",
  "serde",
  "thiserror 1.0.69",
  "tower-service",
 ]
 
 [[package]]
-name = "reqwest-ratelimit"
-version = "0.4.1"
+name = "reqwest-middleware"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b8fff0d8036f23dcad6c27605ca3baa8ae3867438d0a8b34072f40f6c8bf628"
+checksum = "f42e2f48018a33d679ee7f477a446b697663a14e91ab0b3a0206792a22dd3aa8"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "http",
+ "reqwest 0.13.1",
+ "thiserror 2.0.16",
+ "tower-service",
+]
+
+[[package]]
+name = "reqwest-ratelimit"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9dcdd7bc47db7ba0b18b58ebbfba6449c266d0334175eaf5e2219ac4c3a047df"
 dependencies = [
  "async-trait",
  "http",
- "reqwest",
- "reqwest-middleware",
+ "reqwest 0.13.1",
+ "reqwest-middleware 0.5.0",
 ]
 
 [[package]]
@@ -2938,8 +2981,8 @@ dependencies = [
  "http",
  "hyper",
  "parking_lot 0.11.2",
- "reqwest",
- "reqwest-middleware",
+ "reqwest 0.12.28",
+ "reqwest-middleware 0.4.2",
  "retry-policies",
  "thiserror 1.0.69",
  "tokio",
@@ -3438,8 +3481,8 @@ dependencies = [
  "mediatype",
  "parking_lot 0.12.4",
  "rangemap",
- "reqwest",
- "reqwest-middleware",
+ "reqwest 0.12.28",
+ "reqwest-middleware 0.4.2",
  "tempfile",
  "thiserror 2.0.16",
  "tokio",
