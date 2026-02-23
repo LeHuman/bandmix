@@ -8,7 +8,7 @@ repository = "https://github.com/lehuman/bandmix"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-anyhow = "1.0.101"
+anyhow = "1.0.102"
 crossbeam = { version = "0.8.4", features = ["crossbeam-queue"] }
 dashmap = "6.1.0"
 gjson = "0.8.1"
